@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Menu, Search, ShoppingBasket, X } from 'lucide-react';
 import { LOGO_URL } from '../data/catalog';
+import {
+  getMemoryCachedUrl,
+  resolvePersistedMediaUrl,
+} from '../utils/instagramCache';
 
 interface HeaderProps {
   cartCount: number;
@@ -25,7 +29,22 @@ export function Header({
 }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [logoError, setLogoError] = useState(false);
+  const [logoSrc, setLogoSrc] = useState<string>(
+    () => getMemoryCachedUrl(LOGO_URL) ?? LOGO_URL,
+  );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    resolvePersistedMediaUrl(LOGO_URL).then((cached) => {
+      if (!cancelled && cached) {
+        setLogoSrc(cached);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -68,7 +87,7 @@ export function Header({
           >
             {!logoError && (
               <img
-                src={LOGO_URL}
+                src={logoSrc}
                 alt="Kage Figures logo"
                 referrerPolicy="no-referrer"
                 onError={() => setLogoError(true)}

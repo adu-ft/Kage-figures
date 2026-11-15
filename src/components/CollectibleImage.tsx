@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Package } from 'lucide-react';
 import { useLazyInView } from '../hooks/useLazyInView';
+import {
+  getMemoryCachedUrl,
+  getPersistedMediaUrl,
+  isInstagramMediaCached,
+  loadAndPersistMedia,
+  markInstagramMediaCached,
+} from '../utils/instagramCache';
 
 interface CollectibleImageProps {
   src: string;
@@ -22,32 +29,78 @@ export function CollectibleImage({
   rootMargin = '250px 150px',
 }: CollectibleImageProps) {
   const [currentSrc, setCurrentSrc] = useState<string>(src);
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(() => {
+    const mem = getMemoryCachedUrl(src);
+    if (mem) return mem;
+    return !isInstagramMediaCached(src) && loading === 'eager' ? src : null;
+  });
   const [failedCompletely, setFailedCompletely] = useState<boolean>(false);
-  const [loaded, setLoaded] = useState<boolean>(false);
+  const [loaded, setLoaded] = useState<boolean>(() =>
+    Boolean(getMemoryCachedUrl(src)),
+  );
   const imgRef = useRef<HTMLImageElement>(null);
 
+  const knownCached = isInstagramMediaCached(currentSrc);
+
   const { ref: lazyRef, inView } = useLazyInView<HTMLDivElement>({
-    enabled: loading === 'lazy',
+    enabled: loading === 'lazy' && !knownCached,
     rootMargin,
   });
 
+  const shouldResolve = inView || knownCached || loading === 'eager';
+
   useEffect(() => {
+    const mem = getMemoryCachedUrl(src);
+    const cached = Boolean(mem) || isInstagramMediaCached(src);
     setCurrentSrc(src);
+    setResolvedSrc(mem ?? (!cached && loading === 'eager' ? src : null));
     setFailedCompletely(false);
-    setLoaded(false);
-  }, [src]);
+    setLoaded(Boolean(mem));
+  }, [src, loading]);
+
+  useEffect(() => {
+    if (!shouldResolve || !currentSrc) return;
+
+    const mem = getMemoryCachedUrl(currentSrc);
+    if (mem) {
+      setResolvedSrc(mem);
+      setLoaded(true);
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      const persisted = await getPersistedMediaUrl(currentSrc);
+      if (cancelled) return;
+      if (persisted) {
+        setResolvedSrc(persisted);
+        return;
+      }
+
+      const fetched = await loadAndPersistMedia(currentSrc);
+      if (cancelled) return;
+      setResolvedSrc(fetched ?? currentSrc);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentSrc, shouldResolve]);
 
   useEffect(() => {
     const img = imgRef.current;
-    if (inView && img && img.complete && img.naturalWidth > 0) {
+    if (shouldResolve && resolvedSrc && img && img.complete && img.naturalWidth > 0) {
       setLoaded(true);
     }
-  }, [currentSrc, inView]);
+  }, [resolvedSrc, shouldResolve]);
 
   const handleError = () => {
     if (fallbackSrc && currentSrc !== fallbackSrc) {
+      const fallbackMem = getMemoryCachedUrl(fallbackSrc);
       setCurrentSrc(fallbackSrc);
-      setLoaded(false);
+      setResolvedSrc(fallbackMem ?? fallbackSrc);
+      setLoaded(Boolean(fallbackMem));
     } else {
       setFailedCompletely(true);
     }
@@ -68,10 +121,10 @@ export function CollectibleImage({
     );
   }
 
-  if (!inView) {
+  if (!shouldResolve || !resolvedSrc) {
     return (
       <div
-        ref={lazyRef}
+        ref={!knownCached && loading === 'lazy' ? lazyRef : undefined}
         role="img"
         aria-label={alt}
         className={`bg-[#e6e6e6] animate-pulse ${className}`}
@@ -82,13 +135,16 @@ export function CollectibleImage({
   return (
     <img
       ref={imgRef}
-      src={currentSrc}
+      src={resolvedSrc}
       alt={alt}
       loading={loading}
       decoding="async"
       fetchPriority={fetchPriority}
       referrerPolicy="no-referrer"
-      onLoad={() => setLoaded(true)}
+      onLoad={() => {
+        setLoaded(true);
+        markInstagramMediaCached(currentSrc);
+      }}
       onError={handleError}
       className={`${className} transition-opacity duration-200 ${
         loaded ? 'opacity-100' : 'opacity-0'

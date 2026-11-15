@@ -37,6 +37,14 @@ import {
   SearchModal,
   type CartItem,
 } from './components/DrawersAndModals';
+import {
+  getCatalogSignature,
+  hydrateInstagramPosts,
+  loadCatalogViewState,
+  loadStoredCart,
+  saveCatalogViewState,
+  saveStoredCart,
+} from './utils/instagramCache';
 
 const LEGAL_HASH_MAP: Record<string, LegalPageId> = {
   '#privacy-policy': 'privacy',
@@ -99,17 +107,67 @@ const FILTER_CATEGORIES = [
   'Manga Frame',
 ] as const;
 
+function orderProductsByIds(
+  source: Product[],
+  ids: string[] | undefined,
+): Product[] | null {
+  if (!ids || ids.length !== source.length) return null;
+  const map = new Map(source.map((p) => [p.id, p]));
+  const ordered: Product[] = [];
+  for (const id of ids) {
+    const found = map.get(id);
+    if (!found) return null;
+    ordered.push(found);
+  }
+  return ordered;
+}
+
 export default function App() {
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const catalogProducts = useMemo(() => hydrateInstagramPosts(PRODUCTS), []);
+  const catalogSignature = useMemo(
+    () => getCatalogSignature(catalogProducts),
+    [catalogProducts],
+  );
+  const initialViewState = useMemo(
+    () => loadCatalogViewState(catalogSignature),
+    [catalogSignature],
+  );
+
+  const [selectedCategory, setSelectedCategory] = useState<string>(() =>
+    initialViewState?.selectedCategory &&
+    FILTER_CATEGORIES.includes(
+      initialViewState.selectedCategory as (typeof FILTER_CATEGORIES)[number],
+    )
+      ? initialViewState.selectedCategory
+      : 'All',
+  );
   const [allShuffleSeed, setAllShuffleSeed] = useState<number>(0);
   const [categoryMenuOpen, setCategoryMenuOpen] = useState<boolean>(false);
-  const [priceRange, setPriceRange] = useState<[number, number]>([
-    CATALOG_MIN_PRICE,
-    CATALOG_MAX_PRICE,
-  ]);
+  const [priceRange, setPriceRange] = useState<[number, number]>(() => {
+    const stored = initialViewState?.priceRange;
+    if (
+      Array.isArray(stored) &&
+      stored.length === 2 &&
+      typeof stored[0] === 'number' &&
+      typeof stored[1] === 'number' &&
+      stored[0] >= CATALOG_MIN_PRICE &&
+      stored[1] <= CATALOG_MAX_PRICE &&
+      stored[0] <= stored[1]
+    ) {
+      return [stored[0], stored[1]];
+    }
+    return [CATALOG_MIN_PRICE, CATALOG_MAX_PRICE];
+  });
   const [priceMenuOpen, setPriceMenuOpen] = useState<boolean>(false);
-  const [visibleDesktopCount, setVisibleDesktopCount] = useState<number>(10);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [visibleDesktopCount, setVisibleDesktopCount] = useState<number>(() =>
+    typeof initialViewState?.visibleDesktopCount === 'number' &&
+    initialViewState.visibleDesktopCount >= 10
+      ? initialViewState.visibleDesktopCount
+      : 10,
+  );
+  const [cartItems, setCartItems] = useState<CartItem[]>(() =>
+    loadStoredCart<CartItem>(),
+  );
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -175,7 +233,7 @@ export default function App() {
           savedScrollYRef.current = window.scrollY;
         }
         const id = decodeURIComponent(hash.slice('#product-'.length));
-        const found = PRODUCTS.find((p) => p.id === id) || null;
+        const found = catalogProducts.find((p) => p.id === id) || null;
         prevSubpageOpenRef.current = Boolean(found);
         setActiveLegalPage(null);
         setSelectedProduct(found);
@@ -202,7 +260,11 @@ export default function App() {
     syncFromHash();
     window.addEventListener('popstate', syncFromHash);
     return () => window.removeEventListener('popstate', syncFromHash);
-  }, []);
+  }, [catalogProducts]);
+
+  useEffect(() => {
+    saveStoredCart(cartItems);
+  }, [cartItems]);
 
   const scrollTrack = (
     ref: React.RefObject<HTMLDivElement | null>,
@@ -421,18 +483,49 @@ export default function App() {
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  const shuffledFeaturedAll = useMemo(
-    () =>
-      shuffleMixedByCategory(
-        PRODUCTS.filter((p) => p.sectionGroup === 'featured'),
-      ),
-    [allShuffleSeed],
-  );
+  const shuffledFeaturedAll = useMemo(() => {
+    const featuredBase = catalogProducts.filter(
+      (p) => p.sectionGroup === 'featured',
+    );
+    if (allShuffleSeed === 0) {
+      const restored = orderProductsByIds(
+        featuredBase,
+        initialViewState?.shuffledFeaturedIds,
+      );
+      if (restored) return restored;
+    }
+    return shuffleMixedByCategory(featuredBase);
+  }, [allShuffleSeed, catalogProducts, initialViewState]);
 
-  const shuffledAllProducts = useMemo(
-    () => shuffleMixedByCategory(PRODUCTS),
-    [allShuffleSeed],
-  );
+  const shuffledAllProducts = useMemo(() => {
+    if (allShuffleSeed === 0) {
+      const restored = orderProductsByIds(
+        catalogProducts,
+        initialViewState?.shuffledAllIds,
+      );
+      if (restored) return restored;
+    }
+    return shuffleMixedByCategory(catalogProducts);
+  }, [allShuffleSeed, catalogProducts, initialViewState]);
+
+  useEffect(() => {
+    saveCatalogViewState({
+      signature: catalogSignature,
+      selectedCategory,
+      priceRange,
+      visibleDesktopCount,
+      shuffledFeaturedIds: shuffledFeaturedAll.map((p) => p.id),
+      shuffledAllIds: shuffledAllProducts.map((p) => p.id),
+      savedAt: Date.now(),
+    });
+  }, [
+    catalogSignature,
+    selectedCategory,
+    priceRange,
+    visibleDesktopCount,
+    shuffledFeaturedAll,
+    shuffledAllProducts,
+  ]);
 
   const isPriceFiltered =
     priceRange[0] > CATALOG_MIN_PRICE || priceRange[1] < CATALOG_MAX_PRICE;
@@ -443,7 +536,7 @@ export default function App() {
       ? isPriceFiltered
         ? shuffledAllProducts
         : shuffledFeaturedAll
-      : PRODUCTS.filter((p) => p.category === selectedCategory);
+      : catalogProducts.filter((p) => p.category === selectedCategory);
 
   const filteredCatalogue = categoryBaseCatalogue.filter(
     (p) => p.price >= priceRange[0] && p.price <= priceRange[1],
@@ -455,8 +548,8 @@ export default function App() {
     filteredCatalogue.length - displayedFeatured.length,
   );
 
-  const saleProducts = PRODUCTS.filter((p) => p.sectionGroup === 'sale');
-  const vaultProducts = PRODUCTS.filter((p) => p.sectionGroup === 'vault');
+  const saleProducts = catalogProducts.filter((p) => p.sectionGroup === 'sale');
+  const vaultProducts = catalogProducts.filter((p) => p.sectionGroup === 'vault');
 
   return (
     <div className="min-h-screen bg-[#f0f0f0] text-[#1a1a1a] flex flex-col overflow-x-clip">
@@ -675,11 +768,13 @@ export default function App() {
                           const baseList =
                             category === 'All'
                               ? isPriceFiltered
-                                ? PRODUCTS
-                                : PRODUCTS.filter(
+                                ? catalogProducts
+                                : catalogProducts.filter(
                                     (p) => p.sectionGroup === 'featured',
                                   )
-                              : PRODUCTS.filter((p) => p.category === category);
+                              : catalogProducts.filter(
+                                  (p) => p.category === category,
+                                );
                           const count = baseList.filter(
                             (p) =>
                               p.price >= priceRange[0] &&
@@ -1392,7 +1487,7 @@ export default function App() {
 
       <SearchModal
         isOpen={searchOpen}
-        products={PRODUCTS}
+        products={catalogProducts}
         onClose={() => setSearchOpen(false)}
         onSelectProduct={handleOpenProduct}
       />
