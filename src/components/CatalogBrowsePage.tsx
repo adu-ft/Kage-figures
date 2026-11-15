@@ -98,8 +98,8 @@ export function CatalogBrowsePage({
       <div className="fixed top-0 left-0 right-0 h-[58px] sm:h-[66px] bg-[#141414]/95 backdrop-blur-md z-30 pointer-events-none" />
 
       <div className="container-site pt-4 sm:pt-6">
-        {/* Top Back Navigation & Breadcrumb */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-6">
+        {/* Top Back Navigation */}
+        <div className="mb-4 sm:mb-6">
           <button
             type="button"
             onClick={onBack}
@@ -108,30 +108,20 @@ export function CatalogBrowsePage({
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Kage Figures Store</span>
           </button>
-
-          <span className="text-[12px] font-bold uppercase tracking-[0.06em] text-[#1a1a1ab3]">
-            Catalogue · {selectedCategory}
-          </span>
         </div>
 
         {/* Heading & Filter Controls */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 sm:gap-5 mb-5 sm:mb-6">
           <div>
-            <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-[#1a1a1ab3] mb-1.5 inline-flex items-center gap-2">
-              {isHydrating ? (
-                <>
-                  <Loader2
-                    className="w-3.5 h-3.5 text-[#f83a3a] animate-spin"
-                    aria-hidden="true"
-                  />
-                  <span>Instagram Catalogue · Loading collectibles...</span>
-                </>
-              ) : (
-                <span>
-                  Instagram Catalogue · {filteredProducts.length} Collectibles
-                </span>
-              )}
-            </p>
+            {isHydrating && (
+              <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-[#1a1a1ab3] mb-1.5 inline-flex items-center gap-2">
+                <Loader2
+                  className="w-3.5 h-3.5 text-[#f83a3a] animate-spin"
+                  aria-hidden="true"
+                />
+                <span>Loading collectibles...</span>
+              </p>
+            )}
             <h1 className="text-[30px] sm:text-[38px] md:text-[46px] font-bold leading-[1.08] tracking-[-0.02em] text-[#1a1a1a] m-0">
               {selectedCategory === 'All'
                 ? 'Browse All Collectibles'
@@ -140,8 +130,8 @@ export function CatalogBrowsePage({
           </div>
 
           {/* Category Dropdown, Price Dropdown & Clear */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div ref={categoryMenuRef} className="relative">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-2.5 w-full lg:w-auto">
+            <div ref={categoryMenuRef} className="relative min-w-0">
               <button
                 type="button"
                 aria-haspopup="listbox"
@@ -151,12 +141,18 @@ export function CatalogBrowsePage({
                   setPriceMenuOpen(false);
                   setCategoryMenuOpen((prev) => !prev);
                 }}
-                className="h-10 px-4 rounded-full bg-white text-[#1a1a1a] border border-[#1a1a1a]/15 hover:border-[#1a1a1a] text-[13px] sm:text-[14px] font-bold inline-flex items-center gap-2 shadow-[0_2px_10px_0_#1A1A1A0D] transition-all duration-150 cursor-pointer whitespace-nowrap"
+                className="w-full sm:w-auto h-10 sm:h-[42px] px-3.5 sm:px-4 rounded-full bg-white text-[#1a1a1a] border border-[#1a1a1a]/15 hover:border-[#1a1a1a] text-[13px] sm:text-[14px] font-bold flex items-center justify-between gap-2 shadow-[0_2px_10px_0_#1A1A1A0D] transition-all duration-150 cursor-pointer min-w-0"
               >
-                <SlidersHorizontal className="w-4 h-4 text-[#f83a3a]" />
-                <span>Category: {selectedCategory}</span>
+                <span className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                  <SlidersHorizontal className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#f83a3a] shrink-0" />
+                  <span className="truncate">
+                    {selectedCategory === 'All'
+                      ? 'All Categories'
+                      : selectedCategory}
+                  </span>
+                </span>
                 <ChevronDown
-                  className={`w-4 h-4 text-[#1a1a1ab3] transition-transform duration-200 ${
+                  className={`w-4 h-4 text-[#1a1a1ab3] shrink-0 transition-transform duration-200 ${
                     categoryMenuOpen ? 'rotate-180' : ''
                   }`}
                 />
@@ -166,7 +162,7 @@ export function CatalogBrowsePage({
                 <div
                   role="listbox"
                   aria-label="Select category"
-                  className="absolute left-0 lg:left-auto lg:right-0 mt-2 w-64 rounded-[12px] bg-white border border-[#1a1a1a]/10 shadow-[0_12px_32px_0_#1A1A1A22] p-1.5 z-30"
+                  className="absolute left-0 lg:left-auto lg:right-0 mt-2 w-[min(272px,calc(100vw-2.5rem))] rounded-[12px] bg-white border border-[#1a1a1a]/10 shadow-[0_12px_32px_0_#1A1A1A22] p-1.5 z-30"
                 >
                   {categories.map((category) => {
                     const isActive = selectedCategory === category;
@@ -215,7 +211,7 @@ export function CatalogBrowsePage({
               )}
             </div>
 
-            <div ref={priceMenuRef} className="relative">
+            <div ref={priceMenuRef} className="relative min-w-0">
               <button
                 type="button"
                 aria-expanded={priceMenuOpen}
@@ -224,27 +220,31 @@ export function CatalogBrowsePage({
                   setCategoryMenuOpen(false);
                   setPriceMenuOpen((prev) => !prev);
                 }}
-                className={`h-10 px-4 rounded-full border text-[13px] sm:text-[14px] font-bold inline-flex items-center gap-2 shadow-[0_2px_10px_0_#1A1A1A0D] transition-all duration-150 cursor-pointer whitespace-nowrap ${
+                className={`w-full sm:w-auto h-10 sm:h-[42px] px-3.5 sm:px-4 rounded-full border text-[13px] sm:text-[14px] font-bold flex items-center justify-between gap-2 shadow-[0_2px_10px_0_#1A1A1A0D] transition-all duration-150 cursor-pointer min-w-0 ${
                   isPriceFiltered
                     ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
                     : 'bg-white text-[#1a1a1a] border-[#1a1a1a]/15 hover:border-[#1a1a1a]'
                 }`}
               >
-                <IndianRupee
-                  className={`w-3.5 h-3.5 ${
-                    isPriceFiltered ? 'text-[#feb913]' : 'text-[#f83a3a]'
-                  }`}
-                />
-                <span>Price: {activePriceLabel}</span>
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <IndianRupee
+                    className={`w-3.5 h-3.5 shrink-0 ${
+                      isPriceFiltered ? 'text-[#feb913]' : 'text-[#f83a3a]'
+                    }`}
+                  />
+                  <span className="truncate">
+                    {isPriceFiltered ? activePriceLabel : 'All Prices'}
+                  </span>
+                </span>
                 <ChevronDown
-                  className={`w-4 h-4 transition-transform duration-200 ${
+                  className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
                     isPriceFiltered ? 'text-white/80' : 'text-[#1a1a1ab3]'
                   } ${priceMenuOpen ? 'rotate-180' : ''}`}
                 />
               </button>
 
               {priceMenuOpen && (
-                <div className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-[300px] sm:w-[340px] max-w-[calc(100vw-2.5rem)] rounded-[12px] bg-white border border-[#1a1a1a]/10 shadow-[0_12px_32px_0_#1A1A1A22] p-4 z-30">
+                <div className="absolute right-0 mt-2 w-[min(340px,calc(100vw-2.5rem))] rounded-[12px] bg-white border border-[#1a1a1a]/10 shadow-[0_12px_32px_0_#1A1A1A22] p-4 z-30">
                   <PriceRangeFilter
                     minPrice={priceRange[0]}
                     maxPrice={priceRange[1]}
@@ -259,10 +259,10 @@ export function CatalogBrowsePage({
               <button
                 type="button"
                 onClick={onResetFilters}
-                className="h-10 px-3.5 rounded-full bg-white/80 hover:bg-white text-[#f83a3a] border border-[#f83a3a]/25 text-[12.5px] font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                className="col-span-2 sm:col-span-1 w-full sm:w-auto h-9 sm:h-[42px] px-3.5 rounded-full bg-white/85 hover:bg-white text-[#f83a3a] border border-[#f83a3a]/25 text-[12.5px] font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
               >
                 <X className="w-3.5 h-3.5" />
-                <span>Clear</span>
+                <span>Clear Filters</span>
               </button>
             )}
           </div>
