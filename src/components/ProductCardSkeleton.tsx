@@ -1,8 +1,19 @@
-export function ProductCardSkeleton() {
+interface ProductCardSkeletonProps {
+  layout?: 'carousel' | 'grid';
+}
+
+export function ProductCardSkeleton({
+  layout = 'carousel',
+}: ProductCardSkeletonProps) {
+  const sizeClasses =
+    layout === 'grid'
+      ? 'w-full min-w-0 max-w-none'
+      : 'w-[60vw] min-w-[185px] max-w-[225px] sm:w-[230px] md:w-auto md:min-w-0 md:max-w-none shrink-0 snap-start';
+
   return (
     <div
       aria-hidden="true"
-      className="card !p-0 overflow-hidden flex flex-col justify-between bg-white border border-[#1a1a1a]/[0.06] w-[60vw] min-w-[185px] max-w-[225px] sm:w-[230px] md:w-auto md:min-w-0 md:max-w-none shrink-0 snap-start"
+      className={`card !p-0 overflow-hidden flex flex-col justify-between bg-white border border-[#1a1a1a]/[0.06] ${sizeClasses}`}
     >
       {/* Image placeholder */}
       <div className="relative aspect-square w-full bg-[#e6e6e6] animate-pulse overflow-hidden">

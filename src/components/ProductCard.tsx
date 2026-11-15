@@ -6,12 +6,14 @@ interface ProductCardProps {
   product: Product;
   onQuickView: (product: Product) => void;
   onAddToCart: (product: Product, variantId?: string) => void;
+  layout?: 'carousel' | 'grid';
 }
 
 export function ProductCard({
   product,
   onQuickView,
   onAddToCart,
+  layout = 'carousel',
 }: ProductCardProps) {
   const discountPct =
     product.compareAtPrice && product.compareAtPrice > product.price
@@ -21,8 +23,15 @@ export function ProductCard({
         )
       : null;
 
+  const sizeClasses =
+    layout === 'grid'
+      ? 'w-full min-w-0 max-w-none'
+      : 'w-[60vw] min-w-[185px] max-w-[225px] sm:w-[230px] md:w-auto md:min-w-0 md:max-w-none shrink-0 snap-start';
+
   return (
-    <article className="card !p-0 overflow-hidden flex flex-col justify-between bg-white border border-[#1a1a1a]/[0.06] group w-[60vw] min-w-[185px] max-w-[225px] sm:w-[230px] md:w-auto md:min-w-0 md:max-w-none shrink-0 snap-start">
+    <article
+      className={`card !p-0 overflow-hidden flex flex-col justify-between bg-white border border-[#1a1a1a]/[0.06] group ${sizeClasses}`}
+    >
       {/* Product Image Area */}
       <div className="relative aspect-square w-full bg-[#f0f0f0] overflow-hidden">
         <button
@@ -105,30 +114,34 @@ export function ProductCard({
       </div>
 
       {/* Product Details */}
-      <div className="p-3.5 sm:p-4 flex flex-col flex-1 justify-between gap-2.5 bg-white">
+      <div
+        className={`${
+          layout === 'grid' ? 'p-2.5 sm:p-4' : 'p-3.5 sm:p-4'
+        } flex flex-col flex-1 justify-between gap-2.5 bg-white`}
+      >
         <div>
           <button
             type="button"
             onClick={() => onQuickView(product)}
             className="text-left cursor-pointer hover:text-[#f83a3a] transition-colors"
           >
-            <h3 className="text-[14px] sm:text-[15px] leading-[1.3] font-bold text-[#1a1a1a] m-0 line-clamp-2">
+            <h3 className="text-[13.5px] sm:text-[15px] leading-[1.3] font-bold text-[#1a1a1a] m-0 line-clamp-2">
               {product.title}
             </h3>
           </button>
         </div>
 
-        <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-[#1a1a1a]/[0.08]">
-          <div className="flex items-baseline gap-1.5 tabular-nums min-w-0">
+        <div className="flex items-center justify-between gap-1.5 sm:gap-2 pt-2.5 border-t border-[#1a1a1a]/[0.08]">
+          <div className="flex items-baseline gap-1 sm:gap-1.5 tabular-nums min-w-0">
             <span
-              className={`text-[15px] sm:text-[16px] font-bold truncate ${
+              className={`text-[14px] sm:text-[16px] font-bold truncate ${
                 product.compareAtPrice ? 'text-[#f83a3a]' : 'text-[#1a1a1a]'
               }`}
             >
               {formatINR(product.price)}
             </span>
             {product.compareAtPrice && (
-              <span className="text-[11px] sm:text-[12px] font-medium text-[#1a1a1ab3] line-through shrink-0">
+              <span className="text-[10.5px] sm:text-[12px] font-medium text-[#1a1a1ab3] line-through shrink-0">
                 {formatINR(product.compareAtPrice)}
               </span>
             )}
@@ -137,7 +150,11 @@ export function ProductCard({
           <button
             type="button"
             onClick={() => onAddToCart(product, product.variants[0]?.id)}
-            className="h-8 px-3 rounded-full bg-[#1a1a1a] text-white text-[12px] font-bold inline-flex items-center gap-1 hover:bg-[#000000] active:scale-[0.98] transition-all duration-150 cursor-pointer whitespace-nowrap shrink-0"
+            className={`${
+              layout === 'grid'
+                ? 'h-7 sm:h-8 px-2.5 sm:px-3 text-[11.5px] sm:text-[12px]'
+                : 'h-8 px-3 text-[12px]'
+            } rounded-full bg-[#1a1a1a] text-white font-bold inline-flex items-center gap-1 hover:bg-[#000000] active:scale-[0.98] transition-all duration-150 cursor-pointer whitespace-nowrap shrink-0`}
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add</span>

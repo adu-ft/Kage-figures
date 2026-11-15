@@ -26,6 +26,7 @@ import {
   type Product,
   getActivePriceLabel,
 } from './data/catalog';
+import { CatalogBrowsePage } from './components/CatalogBrowsePage';
 import { CollectibleImage } from './components/CollectibleImage';
 import { Header } from './components/Header';
 import { HeroSlideshow } from './components/HeroSlideshow';
@@ -190,6 +191,7 @@ export default function App() {
   const [activeLegalPage, setActiveLegalPage] = useState<LegalPageId | null>(
     null,
   );
+  const [browsePageOpen, setBrowsePageOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [verifiedPincode, setVerifiedPincode] =
     useState<PincodeDetails | null>(() => getLastVerifiedPincode());
@@ -200,7 +202,12 @@ export default function App() {
   const priceMenuRef = useRef<HTMLDivElement>(null);
   const collectionScrollRef = useRef<HTMLDivElement>(null);
   const savedScrollYRef = useRef<number>(0);
+  const catalogScrollYRef = useRef<number>(0);
+  const returnToCatalogRef = useRef<boolean>(false);
   const prevSubpageOpenRef = useRef<boolean>(false);
+  const prevHashRef = useRef<string>(
+    typeof window !== 'undefined' ? window.location.hash : '',
+  );
   const collectionDragState = useRef<{
     isDown: boolean;
     startX: number;
@@ -245,7 +252,9 @@ export default function App() {
 
   useEffect(() => {
     const syncFromHash = () => {
+      const prevHash = prevHashRef.current;
       const hash = window.location.hash;
+      prevHashRef.current = hash;
       if (hash.startsWith('#product-')) {
         if (!prevSubpageOpenRef.current) {
           savedScrollYRef.current = window.scrollY;
@@ -254,19 +263,41 @@ export default function App() {
         const source = catalogProducts.length > 0 ? catalogProducts : PRODUCTS;
         const found = source.find((p) => p.id === id) || null;
         prevSubpageOpenRef.current = Boolean(found);
+        setBrowsePageOpen(false);
         setActiveLegalPage(null);
         setSelectedProduct(found);
+      } else if (hash === '#catalogue') {
+        const returningFromProduct =
+          returnToCatalogRef.current && prevHash.startsWith('#product-');
+        if (!prevSubpageOpenRef.current) {
+          savedScrollYRef.current = window.scrollY;
+        }
+        prevSubpageOpenRef.current = true;
+        returnToCatalogRef.current = true;
+        setSelectedProduct(null);
+        setActiveLegalPage(null);
+        setBrowsePageOpen(true);
+        requestAnimationFrame(() => {
+          window.scrollTo({
+            top: returningFromProduct ? catalogScrollYRef.current : 0,
+            behavior: 'auto',
+          });
+        });
       } else if (LEGAL_HASH_MAP[hash]) {
         if (!prevSubpageOpenRef.current) {
           savedScrollYRef.current = window.scrollY;
         }
         prevSubpageOpenRef.current = true;
+        returnToCatalogRef.current = false;
+        setBrowsePageOpen(false);
         setSelectedProduct(null);
         setActiveLegalPage(LEGAL_HASH_MAP[hash]);
         window.scrollTo({ top: 0, behavior: 'auto' });
       } else {
         const wasOpen = prevSubpageOpenRef.current;
         prevSubpageOpenRef.current = false;
+        returnToCatalogRef.current = false;
+        setBrowsePageOpen(false);
         setSelectedProduct(null);
         setActiveLegalPage(null);
         if (wasOpen) {
@@ -305,26 +336,51 @@ export default function App() {
   };
 
   const handleOpenProduct = (product: Product) => {
-    if (!selectedProduct && !activeLegalPage) {
+    if (browsePageOpen) {
+      catalogScrollYRef.current = window.scrollY;
+      returnToCatalogRef.current = true;
+    } else if (!selectedProduct && !activeLegalPage) {
       savedScrollYRef.current = window.scrollY;
+      returnToCatalogRef.current = false;
     }
     prevSubpageOpenRef.current = true;
+    setBrowsePageOpen(false);
     setActiveLegalPage(null);
     setSelectedProduct(product);
     const targetHash = `#product-${encodeURIComponent(product.id)}`;
+    prevHashRef.current = targetHash;
     if (window.location.hash !== targetHash) {
       window.history.pushState({ productId: product.id }, '', targetHash);
     }
   };
 
-  const handleOpenLegalPage = (pageId: LegalPageId) => {
-    if (!selectedProduct && !activeLegalPage) {
+  const handleOpenCatalogBrowse = () => {
+    if (!selectedProduct && !activeLegalPage && !browsePageOpen) {
       savedScrollYRef.current = window.scrollY;
     }
     prevSubpageOpenRef.current = true;
+    returnToCatalogRef.current = true;
+    setSelectedProduct(null);
+    setActiveLegalPage(null);
+    setBrowsePageOpen(true);
+    prevHashRef.current = '#catalogue';
+    if (window.location.hash !== '#catalogue') {
+      window.history.pushState({ catalog: true }, '', '#catalogue');
+    }
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  };
+
+  const handleOpenLegalPage = (pageId: LegalPageId) => {
+    if (!selectedProduct && !activeLegalPage && !browsePageOpen) {
+      savedScrollYRef.current = window.scrollY;
+    }
+    prevSubpageOpenRef.current = true;
+    returnToCatalogRef.current = false;
+    setBrowsePageOpen(false);
     setSelectedProduct(null);
     setActiveLegalPage(pageId);
     const targetHash = LEGAL_ID_TO_HASH[pageId];
+    prevHashRef.current = targetHash;
     if (window.location.hash !== targetHash) {
       window.history.pushState({ legalPage: pageId }, '', targetHash);
     }
@@ -332,15 +388,20 @@ export default function App() {
   };
 
   const handleNavigate = (sectionId: string, filterCategory?: string) => {
-    const wasOnSubpage = selectedProduct !== null || activeLegalPage !== null;
+    const wasOnSubpage =
+      selectedProduct !== null || activeLegalPage !== null || browsePageOpen;
     if (wasOnSubpage) {
       prevSubpageOpenRef.current = false;
+      returnToCatalogRef.current = false;
+      setBrowsePageOpen(false);
       setSelectedProduct(null);
       setActiveLegalPage(null);
       if (
         window.location.hash.startsWith('#product-') ||
+        window.location.hash === '#catalogue' ||
         LEGAL_HASH_MAP[window.location.hash]
       ) {
+        prevHashRef.current = '';
         window.history.replaceState(
           null,
           '',
@@ -380,13 +441,29 @@ export default function App() {
       handleNavigate('#featured-collection', categoryFilter);
       return;
     }
+    if (selectedProduct && returnToCatalogRef.current) {
+      setSelectedProduct(null);
+      setBrowsePageOpen(true);
+      prevHashRef.current = '#catalogue';
+      if (window.location.hash !== '#catalogue') {
+        window.history.replaceState({ catalog: true }, '', '#catalogue');
+      }
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: catalogScrollYRef.current, behavior: 'auto' });
+      });
+      return;
+    }
     prevSubpageOpenRef.current = false;
+    returnToCatalogRef.current = false;
+    setBrowsePageOpen(false);
     setSelectedProduct(null);
     setActiveLegalPage(null);
     if (
       window.location.hash.startsWith('#product-') ||
+      window.location.hash === '#catalogue' ||
       LEGAL_HASH_MAP[window.location.hash]
     ) {
+      prevHashRef.current = '';
       window.history.replaceState(
         null,
         '',
@@ -586,9 +663,33 @@ export default function App() {
           />
         )}
 
+        {!selectedProduct && !activeLegalPage && browsePageOpen && (
+          <CatalogBrowsePage
+            products={catalogProducts}
+            categoryBaseProducts={categoryBaseCatalogue}
+            filteredProducts={filteredCatalogue}
+            isHydrating={isHydratingCatalog}
+            categories={FILTER_CATEGORIES}
+            selectedCategory={selectedCategory}
+            priceRange={priceRange}
+            activePriceLabel={activePriceLabel}
+            isPriceFiltered={isPriceFiltered}
+            onSelectCategory={handleSelectCategory}
+            onPriceRangeChange={handlePriceRangeChange}
+            onResetFilters={handleResetFilters}
+            onSelectProduct={handleOpenProduct}
+            onAddToCart={handleAddToCart}
+            onBack={() => handleBackToCatalogue()}
+          />
+        )}
+
         <div
-          className={selectedProduct || activeLegalPage ? 'hidden' : ''}
-          aria-hidden={Boolean(selectedProduct || activeLegalPage)}
+          className={
+            selectedProduct || activeLegalPage || browsePageOpen ? 'hidden' : ''
+          }
+          aria-hidden={Boolean(
+            selectedProduct || activeLegalPage || browsePageOpen,
+          )}
         >
           {/* 2. Slideshow Section */}
           <HeroSlideshow onSelectSlideAction={handleNavigate} />
@@ -954,18 +1055,14 @@ export default function App() {
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <button
                   type="button"
-                  onClick={() =>
-                    setVisibleDesktopCount((prev) => prev + 15)
-                  }
+                  onClick={handleOpenCatalogBrowse}
                   className="button-primary"
                 >
                   Load More Catalogue ({remainingFeatured} more)
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    setVisibleDesktopCount(filteredCatalogue.length)
-                  }
+                  onClick={handleOpenCatalogBrowse}
                   className="h-[50px] px-7 rounded-full border border-[#1a1a1a]/20 bg-white text-[#1a1a1a] text-[15px] font-bold hover:border-[#1a1a1a] transition-colors cursor-pointer"
                 >
                   Show All {filteredCatalogue.length}
