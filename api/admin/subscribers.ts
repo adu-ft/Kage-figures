@@ -6,7 +6,7 @@ import {
   verifyAdminToken,
   type ApiRequest,
   type ApiResponse,
-} from '../_lib/backend';
+} from '../_lib/backend.js';
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== 'GET') {

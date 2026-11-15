@@ -8,7 +8,7 @@ import {
   type ApiRequest,
   type ApiResponse,
   type OrderStatus,
-} from '../../_lib/backend';
+} from '../../_lib/backend.js';
 
 function resolveOrderNumber(req: ApiRequest): string {
   const fromQuery = req.query?.orderNumber;

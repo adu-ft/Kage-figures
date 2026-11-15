@@ -151,6 +151,15 @@ export function sendJson(res: ApiResponse, statusCode: number, data: unknown): v
 export async function readJsonBody<T = Record<string, unknown>>(
   req: ApiRequest,
 ): Promise<T> {
+  if (Buffer.isBuffer(req.body)) {
+    const rawBuf = req.body.toString('utf8').trim();
+    if (!rawBuf) return {} as T;
+    try {
+      return JSON.parse(rawBuf) as T;
+    } catch {
+      return {} as T;
+    }
+  }
   if (req.body && typeof req.body === 'object') {
     return req.body as T;
   }
