@@ -29,6 +29,12 @@ interface CatalogBrowsePageProps {
   onResetFilters: () => void;
   onSelectProduct: (product: Product) => void;
   onAddToCart: (product: Product, variantId?: string) => void;
+  getCartQuantity?: (productId: string) => number;
+  onUpdateCartQuantity?: (
+    product: Product,
+    variantId: string | undefined,
+    delta: number,
+  ) => void;
   onBack: () => void;
 }
 
@@ -47,6 +53,8 @@ export function CatalogBrowsePage({
   onResetFilters,
   onSelectProduct,
   onAddToCart,
+  getCartQuantity,
+  onUpdateCartQuantity,
   onBack,
 }: CatalogBrowsePageProps) {
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
@@ -346,6 +354,8 @@ export function CatalogBrowsePage({
                 product={product}
                 onQuickView={onSelectProduct}
                 onAddToCart={onAddToCart}
+                cartQuantity={getCartQuantity ? getCartQuantity(product.id) : 0}
+                onUpdateQuantity={onUpdateCartQuantity}
                 layout="grid"
               />
             ))}

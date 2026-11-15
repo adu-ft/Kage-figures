@@ -397,6 +397,24 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'auto' });
   };
 
+  const handleOpenAdminPage = () => {
+    if (!selectedProduct && !activeLegalPage && !browsePageOpen && !adminPageOpen) {
+      savedScrollYRef.current = window.scrollY;
+    }
+    prevSubpageOpenRef.current = true;
+    returnToCatalogRef.current = false;
+    returnToAdminRef.current = false;
+    setBrowsePageOpen(false);
+    setSelectedProduct(null);
+    setActiveLegalPage(null);
+    setAdminPageOpen(true);
+    prevHashRef.current = '#vault-admin';
+    if (window.location.hash !== '#vault-admin') {
+      window.history.pushState({ admin: true }, '', '#vault-admin');
+    }
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  };
+
   const handleOpenLegalPage = (pageId: LegalPageId) => {
     if (!selectedProduct && !activeLegalPage && !browsePageOpen && !adminPageOpen) {
       savedScrollYRef.current = window.scrollY;
@@ -619,6 +637,68 @@ export default function App() {
     );
   };
 
+  const handleAdjustProductQty = (
+    product: Product,
+    variantId: string | undefined,
+    delta: number,
+  ) => {
+    const resolvedVariant =
+      product.variants.find((v) => v.id === variantId) || product.variants[0];
+    const vId = resolvedVariant?.id || 'std';
+    const vLabel = resolvedVariant?.label || 'Standard Edition';
+    const unitPrice = Math.max(
+      49,
+      product.price + (resolvedVariant?.priceDelta || 0),
+    );
+
+    setCartItems((prev) => {
+      let existingIndex = prev.findIndex(
+        (item) => item.product.id === product.id && item.variantId === vId,
+      );
+      if (existingIndex === -1) {
+        existingIndex = prev.findIndex((item) => item.product.id === product.id);
+      }
+
+      if (existingIndex > -1) {
+        const nextQty = prev[existingIndex].quantity + delta;
+        if (nextQty <= 0) {
+          return prev.filter((_, idx) => idx !== existingIndex);
+        }
+        const updated = [...prev];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          quantity: nextQty,
+        };
+        return updated;
+      }
+
+      if (delta > 0) {
+        return [
+          ...prev,
+          {
+            product,
+            variantId: vId,
+            variantLabel: vLabel,
+            unitPrice,
+            quantity: delta,
+          },
+        ];
+      }
+      return prev;
+    });
+  };
+
+  const cartQtyByProduct = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of cartItems) {
+      map.set(
+        item.product.id,
+        (map.get(item.product.id) || 0) + item.quantity,
+      );
+    }
+    return map;
+  }, [cartItems]);
+
   const handleNewsletterSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const cleaned = newsletterEmail.trim();
@@ -747,6 +827,10 @@ export default function App() {
               onResetFilters={handleResetFilters}
               onSelectProduct={handleOpenProduct}
               onAddToCart={handleAddToCart}
+              getCartQuantity={(productId) =>
+                cartQtyByProduct.get(productId) || 0
+              }
+              onUpdateCartQuantity={handleAdjustProductQty}
               onBack={() => handleBackToCatalogue()}
             />
           )}
@@ -843,7 +927,7 @@ export default function App() {
               onMouseLeave={() => {
                 collectionDragState.current.isDown = false;
               }}
-              className="flex flex-nowrap overflow-x-auto snap-x snap-proximity gap-3.5 sm:gap-4 pb-3 -mx-5 px-5 sm:mx-0 sm:px-0 xl:grid xl:grid-cols-5 xl:overflow-visible xl:pb-0 no-scrollbar cursor-grab active:cursor-grabbing xl:cursor-default select-none touch-pan-x"
+              className="flex flex-nowrap overflow-x-auto overflow-y-hidden snap-x snap-proximity gap-3.5 sm:gap-4 pb-3 -mx-5 px-5 sm:mx-0 sm:px-0 xl:grid xl:grid-cols-5 xl:overflow-visible xl:pb-0 no-scrollbar cursor-grab active:cursor-grabbing xl:cursor-default select-none touch-manipulation"
             >
               {IMAGE_LINK_BLOCKS.map((block) => (
                 <button
@@ -1122,6 +1206,8 @@ export default function App() {
                     product={product}
                     onQuickView={handleOpenProduct}
                     onAddToCart={handleAddToCart}
+                    cartQuantity={cartQtyByProduct.get(product.id) || 0}
+                    onUpdateQuantity={handleAdjustProductQty}
                   />
                 ))}
               </div>
@@ -1207,6 +1293,8 @@ export default function App() {
                       product={product}
                       onQuickView={handleOpenProduct}
                       onAddToCart={handleAddToCart}
+                      cartQuantity={cartQtyByProduct.get(product.id) || 0}
+                      onUpdateQuantity={handleAdjustProductQty}
                     />
                   ))}
             </div>
@@ -1330,6 +1418,8 @@ export default function App() {
                       product={product}
                       onQuickView={handleOpenProduct}
                       onAddToCart={handleAddToCart}
+                      cartQuantity={cartQtyByProduct.get(product.id) || 0}
+                      onUpdateQuantity={handleAdjustProductQty}
                     />
                   ))}
             </div>
@@ -1641,6 +1731,17 @@ export default function App() {
                 className="hover:text-[#f83a3a]"
               >
                 Returns
+              </a>
+              <span aria-hidden="true">·</span>
+              <a
+                href="#vault-admin"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleOpenAdminPage();
+                }}
+                className="hover:text-[#f83a3a]"
+              >
+                Dispatch Desk
               </a>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { Eye, Layers, Plus, Ruler, Tag } from 'lucide-react';
+import { Eye, Layers, Minus, Plus, Ruler, Tag } from 'lucide-react';
 import { Product, formatINR } from '../data/catalog';
 import { CollectibleImage } from './CollectibleImage';
 
@@ -6,6 +6,12 @@ interface ProductCardProps {
   product: Product;
   onQuickView: (product: Product) => void;
   onAddToCart: (product: Product, variantId?: string) => void;
+  cartQuantity?: number;
+  onUpdateQuantity?: (
+    product: Product,
+    variantId: string | undefined,
+    delta: number,
+  ) => void;
   layout?: 'carousel' | 'grid';
 }
 
@@ -13,6 +19,8 @@ export function ProductCard({
   product,
   onQuickView,
   onAddToCart,
+  cartQuantity = 0,
+  onUpdateQuantity,
   layout = 'carousel',
 }: ProductCardProps) {
   const discountPct =
@@ -147,18 +155,64 @@ export function ProductCard({
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => onAddToCart(product, product.variants[0]?.id)}
-            className={`${
-              layout === 'grid'
-                ? 'h-7 sm:h-8 px-2.5 sm:px-3 text-[11.5px] sm:text-[12px]'
-                : 'h-8 px-3 text-[12px]'
-            } rounded-full bg-[#1a1a1a] text-white font-bold inline-flex items-center gap-1 hover:bg-[#000000] active:scale-[0.98] transition-all duration-150 cursor-pointer whitespace-nowrap shrink-0`}
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add</span>
-          </button>
+          {cartQuantity > 0 ? (
+            <div
+              role="group"
+              aria-label={`Quantity in bag for ${product.title}`}
+              className={`${
+                layout === 'grid'
+                  ? 'h-7 sm:h-8 px-1 text-[11.5px] sm:text-[12px]'
+                  : 'h-8 px-1 text-[12px]'
+              } rounded-full bg-[#1a1a1a] text-white font-bold inline-flex items-center gap-0.5 sm:gap-1 shadow-[0_2px_8px_0_#1A1A1A26] shrink-0`}
+            >
+              <button
+                type="button"
+                aria-label={`Decrease quantity of ${product.title}`}
+                onClick={() => {
+                  if (onUpdateQuantity) {
+                    onUpdateQuantity(product, product.variants[0]?.id, -1);
+                  }
+                }}
+                className={`${
+                  layout === 'grid' ? 'w-5 h-5 sm:w-6 sm:h-6' : 'w-6 h-6'
+                } rounded-full hover:bg-white/15 active:scale-95 inline-flex items-center justify-center transition-colors cursor-pointer`}
+              >
+                <Minus className="w-3 h-3" />
+              </button>
+              <span className="min-w-[16px] text-center tabular-nums text-[#feb913] font-extrabold select-none">
+                {cartQuantity}
+              </span>
+              <button
+                type="button"
+                aria-label={`Increase quantity of ${product.title}`}
+                onClick={() => {
+                  if (onUpdateQuantity) {
+                    onUpdateQuantity(product, product.variants[0]?.id, 1);
+                  } else {
+                    onAddToCart(product, product.variants[0]?.id);
+                  }
+                }}
+                className={`${
+                  layout === 'grid' ? 'w-5 h-5 sm:w-6 sm:h-6' : 'w-6 h-6'
+                } rounded-full hover:bg-white/15 active:scale-95 inline-flex items-center justify-center transition-colors cursor-pointer`}
+              >
+                <Plus className="w-3 h-3" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onAddToCart(product, product.variants[0]?.id)}
+              className={`${
+                layout === 'grid'
+                  ? 'h-7 sm:h-8 px-2.5 sm:px-3 text-[11.5px] sm:text-[12px]'
+                  : 'h-8 px-3 text-[12px]'
+              } rounded-full bg-[#1a1a1a] text-white font-bold inline-flex items-center gap-1 hover:bg-[#000000] active:scale-[0.98] transition-all duration-150 cursor-pointer whitespace-nowrap shrink-0`}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add</span>
+            </button>
+          )}
         </div>
       </div>
     </article>
