@@ -1,8 +1,14 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env
-  .VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+function cleanPublicEnv(raw: unknown): string {
+  if (typeof raw !== 'string') return '';
+  return raw.trim().replace(/^["']|["']$/g, '').trim();
+}
+
+const SUPABASE_URL = cleanPublicEnv(import.meta.env.VITE_SUPABASE_URL);
+const SUPABASE_PUBLISHABLE_KEY = cleanPublicEnv(
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+);
 
 let browserClient: SupabaseClient | null = null;
 
