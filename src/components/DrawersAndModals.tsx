@@ -1,6 +1,9 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
+  AlertCircle,
   CheckCircle2,
+  Loader2,
+  MapPin,
   Minus,
   Plus,
   Search,
@@ -16,6 +19,15 @@ import {
 } from '../data/catalog';
 import { CollectibleImage } from './CollectibleImage';
 import { PriceRangeFilter } from './PriceRangeFilter';
+import {
+  getLastVerifiedPincode,
+  lookupIndianPincode,
+  saveVerifiedPincode,
+  validateIndianAddress,
+  validateIndianFullName,
+  validateIndianMobile,
+  type PincodeDetails,
+} from '../utils/indianPincode';
 
 export interface CartItem {
   product: Product;
@@ -32,6 +44,15 @@ interface CartDrawerProps {
   onUpdateQuantity: (key: string, delta: number) => void;
   onRemoveItem: (key: string) => void;
   onClearCart: () => void;
+  verifiedPincode?: PincodeDetails | null;
+  onVerifiedPincode?: (details: PincodeDetails) => void;
+}
+
+interface CheckoutErrors {
+  name?: string;
+  phone?: string;
+  pin?: string;
+  address?: string;
 }
 
 export function CartDrawer({
@@ -41,19 +62,56 @@ export function CartDrawer({
   onUpdateQuantity,
   onRemoveItem,
   onClearCart,
+  verifiedPincode,
+  onVerifiedPincode,
 }: CartDrawerProps) {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [orderConfirmedId, setOrderConfirmedId] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
-  const [customerPin, setCustomerPin] = useState('');
+  const [customerPin, setCustomerPin] = useState(
+    () => verifiedPincode?.pincode ?? getLastVerifiedPincode()?.pincode ?? '',
+  );
+  const [checkoutPinDetails, setCheckoutPinDetails] =
+    useState<PincodeDetails | null>(
+      () => verifiedPincode ?? getLastVerifiedPincode(),
+    );
+  const [selectedLocality, setSelectedLocality] = useState<string>(
+    () =>
+      verifiedPincode?.locality ?? getLastVerifiedPincode()?.locality ?? '',
+  );
+  const [checkingCheckoutPin, setCheckingCheckoutPin] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<CheckoutErrors>({});
+  const [confirmedSummary, setConfirmedSummary] = useState<{
+    name: string;
+    phone: string;
+    destination: string;
+  } | null>(null);
+  const pinAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
       setCheckoutOpen(false);
+      pinAbortRef.current?.abort();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    const incoming = verifiedPincode ?? getLastVerifiedPincode();
+    if (incoming && (!checkoutPinDetails || incoming.pincode !== checkoutPinDetails.pincode)) {
+      setCustomerPin(incoming.pincode);
+      setCheckoutPinDetails(incoming);
+      setSelectedLocality(incoming.locality);
+      setFieldErrors((prev) => ({ ...prev, pin: undefined }));
+    }
+  }, [verifiedPincode, isOpen, checkoutOpen]);
+
+  useEffect(() => {
+    return () => {
+      pinAbortRef.current?.abort();
+    };
+  }, []);
 
   if (!isOpen) return null;
 
@@ -68,9 +126,91 @@ export function CartDrawer({
     Math.round((subtotal / freeShippingThreshold) * 100),
   );
 
-  const handleCheckoutSubmit = (e: FormEvent) => {
+  const verifyCheckoutPin = async (pinDigits: string): Promise<PincodeDetails | null> => {
+    pinAbortRef.current?.abort();
+    const controller = new AbortController();
+    pinAbortRef.current = controller;
+
+    setCheckingCheckoutPin(true);
+    setFieldErrors((prev) => ({ ...prev, pin: undefined }));
+
+    const result = await lookupIndianPincode(pinDigits, controller.signal);
+    if (controller.signal.aborted) return null;
+
+    setCheckingCheckoutPin(false);
+    if (result.ok) {
+      setCheckoutPinDetails(result.data);
+      setSelectedLocality(result.data.locality);
+      saveVerifiedPincode(result.data);
+      onVerifiedPincode?.(result.data);
+      return result.data;
+    }
+
+    setCheckoutPinDetails(null);
+    setSelectedLocality('');
+    setFieldErrors((prev) => ({ ...prev, pin: result.message }));
+    return null;
+  };
+
+  const handleCheckoutPinChange = (rawValue: string) => {
+    const digitsOnly = rawValue.replace(/\D/g, '').slice(0, 6);
+    setCustomerPin(digitsOnly);
+    setFieldErrors((prev) => ({ ...prev, pin: undefined }));
+
+    if (checkoutPinDetails && digitsOnly !== checkoutPinDetails.pincode) {
+      setCheckoutPinDetails(null);
+      setSelectedLocality('');
+    }
+
+    if (digitsOnly.length === 6) {
+      void verifyCheckoutPin(digitsOnly);
+    } else {
+      pinAbortRef.current?.abort();
+      setCheckingCheckoutPin(false);
+    }
+  };
+
+  const handleCheckoutSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    const nextErrors: CheckoutErrors = {};
+
+    const nameError = validateIndianFullName(customerName);
+    if (nameError) nextErrors.name = nameError;
+
+    const mobileCheck = validateIndianMobile(customerPhone);
+    if (!mobileCheck.valid && mobileCheck.error) {
+      nextErrors.phone = mobileCheck.error;
+    }
+
+    const addressError = validateIndianAddress(customerAddress);
+    if (addressError) nextErrors.address = addressError;
+
+    let activePin = checkoutPinDetails;
+    const cleanedPin = customerPin.replace(/\D/g, '');
+    if (!activePin || activePin.pincode !== cleanedPin) {
+      if (cleanedPin.length === 6) {
+        activePin = await verifyCheckoutPin(cleanedPin);
+        if (!activePin) {
+          return;
+        }
+      } else {
+        nextErrors.pin = 'Enter a valid 6-digit Indian delivery PIN code.';
+      }
+    }
+
+    if (Object.keys(nextErrors).length > 0 || !activePin) {
+      setFieldErrors(nextErrors);
+      return;
+    }
+
+    setFieldErrors({});
     const orderNum = `KF-${Math.floor(10000 + Math.random() * 89999)}`;
+    const areaPart = selectedLocality || activePin.locality;
+    setConfirmedSummary({
+      name: customerName.trim().replace(/\s+/g, ' '),
+      phone: `+91 ${mobileCheck.normalized}`,
+      destination: `${areaPart}, ${activePin.city}, ${activePin.state} - ${activePin.pincode}`,
+    });
     setOrderConfirmedId(orderNum);
     onClearCart();
   };
@@ -120,20 +260,27 @@ export function CartDrawer({
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {orderConfirmedId ? (
             <div className="bg-white rounded-[12px] p-6 shadow-[0_5px_15px_0_#1A1A1A1A] text-center">
-              <CheckCircle2 className="w-12 h-12 text-[#1a1a1a] mx-auto mb-3" />
+              <CheckCircle2 className="w-12 h-12 text-[#15803d] mx-auto mb-3" />
               <span className="badge-pill mb-3">Reservation Confirmed</span>
               <h4 className="text-[22px] font-bold text-[#1a1a1a] mb-2">
                 Order #{orderConfirmedId}
               </h4>
-              <p className="text-[15px] text-[#1a1a1ab3] mb-6">
-                Thank you, {customerName || 'Collector'}. Our vault team will
-                share inspection photos and insured dispatch details via SMS at{' '}
-                {customerPhone}.
+              <p className="text-[14.5px] text-[#1a1a1ab3] mb-3">
+                Thank you, {confirmedSummary?.name || 'Collector'}. Our vault
+                team will share inspection photos and insured dispatch details via
+                SMS at {confirmedSummary?.phone || customerPhone}.
               </p>
+              {confirmedSummary?.destination && (
+                <p className="text-[12.5px] font-semibold text-[#1a1a1a] bg-[#f7f7f7] rounded-[8px] px-3 py-2 mb-6 inline-flex items-center justify-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[#f83a3a] shrink-0" />
+                  <span>{confirmedSummary.destination}</span>
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => {
                   setOrderConfirmedId(null);
+                  setConfirmedSummary(null);
                   onClose();
                 }}
                 className="button-primary w-full"
@@ -158,7 +305,7 @@ export function CartDrawer({
               </button>
             </div>
           ) : checkoutOpen ? (
-            <form onSubmit={handleCheckoutSubmit} className="space-y-4">
+            <form onSubmit={handleCheckoutSubmit} noValidate className="space-y-4">
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-[18px] font-bold text-[#1a1a1a] m-0">
                   Insured Dispatch Details
@@ -174,59 +321,218 @@ export function CartDrawer({
 
               <div>
                 <label className="block text-[12px] font-bold text-[#1a1a1ab3] mb-1">
-                  Full Name
+                  Full Name *
                 </label>
                 <input
                   type="text"
                   required
+                  autoComplete="name"
+                  maxLength={60}
                   value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
+                  onChange={(e) => {
+                    setCustomerName(e.target.value);
+                    if (fieldErrors.name) {
+                      setFieldErrors((prev) => ({ ...prev, name: undefined }));
+                    }
+                  }}
+                  onBlur={() => {
+                    if (customerName.trim().length > 0) {
+                      const err = validateIndianFullName(customerName);
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        name: err ?? undefined,
+                      }));
+                    }
+                  }}
                   placeholder="Aarav Mehta"
-                  className="input !pt-0"
+                  aria-invalid={Boolean(fieldErrors.name)}
+                  className={`input !pt-0 ${
+                    fieldErrors.name ? '!border-[#f83a3a] !bg-[#fff5f5]' : ''
+                  }`}
                 />
+                {fieldErrors.name && (
+                  <p className="text-[11.5px] font-semibold text-[#f83a3a] mt-1 mb-0 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{fieldErrors.name}</span>
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-[12px] font-bold text-[#1a1a1ab3] mb-1">
-                  Mobile Number
+                  Indian Mobile Number *
                 </label>
-                <input
-                  type="tel"
-                  required
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="+91 98201 44120"
-                  className="input !pt-0"
-                />
+                <div className="relative flex items-center">
+                  <span className="absolute left-3.5 text-[13px] font-bold text-[#1a1a1a] pointer-events-none select-none">
+                    +91
+                  </span>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    maxLength={10}
+                    required
+                    value={customerPhone}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setCustomerPhone(digits);
+                      if (fieldErrors.phone) {
+                        setFieldErrors((prev) => ({ ...prev, phone: undefined }));
+                      }
+                    }}
+                    onBlur={() => {
+                      if (customerPhone.length > 0) {
+                        const res = validateIndianMobile(customerPhone);
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          phone: res.error ?? undefined,
+                        }));
+                      }
+                    }}
+                    placeholder="9820144120"
+                    aria-invalid={Boolean(fieldErrors.phone)}
+                    className={`input !pt-0 !pl-12 ${
+                      fieldErrors.phone ? '!border-[#f83a3a] !bg-[#fff5f5]' : ''
+                    }`}
+                  />
+                </div>
+                {fieldErrors.phone && (
+                  <p className="text-[11.5px] font-semibold text-[#f83a3a] mt-1 mb-0 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{fieldErrors.phone}</span>
+                  </p>
+                )}
               </div>
 
               <div>
-                <label className="block text-[12px] font-bold text-[#1a1a1ab3] mb-1">
-                  Shipping Address
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[12px] font-bold text-[#1a1a1ab3]">
+                    Delivery PIN Code (India) *
+                  </label>
+                  {checkingCheckoutPin ? (
+                    <span className="text-[11px] font-semibold text-[#1a1a1ab3] inline-flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Verifying PIN...
+                    </span>
+                  ) : checkoutPinDetails ? (
+                    <span className="text-[11px] font-bold text-[#15803d] inline-flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Verified · {checkoutPinDetails.deliveryDays}
+                    </span>
+                  ) : null}
+                </div>
                 <input
                   type="text"
+                  inputMode="numeric"
+                  autoComplete="postal-code"
+                  maxLength={6}
                   required
-                  value={customerAddress}
-                  onChange={(e) => setCustomerAddress(e.target.value)}
-                  placeholder="402 Skyview Residency, Bandra West"
-                  className="input !pt-0"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-bold text-[#1a1a1ab3] mb-1">
-                  PIN Code
-                </label>
-                <input
-                  type="text"
-                  required
-                  pattern="[0-9]{6}"
                   value={customerPin}
-                  onChange={(e) => setCustomerPin(e.target.value)}
-                  placeholder="400050"
-                  className="input !pt-0"
+                  onChange={(e) => handleCheckoutPinChange(e.target.value)}
+                  placeholder="Enter 6-digit Indian PIN (e.g. 452001)"
+                  aria-invalid={Boolean(fieldErrors.pin)}
+                  className={`input !pt-0 ${
+                    fieldErrors.pin
+                      ? '!border-[#f83a3a] !bg-[#fff5f5]'
+                      : checkoutPinDetails
+                        ? '!border-[#15803d]/50 !bg-[#f0fdf4]/50'
+                        : ''
+                  }`}
                 />
+                {fieldErrors.pin && (
+                  <p className="text-[11.5px] font-semibold text-[#f83a3a] mt-1 mb-0 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{fieldErrors.pin}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Auto-filled City & State from India Post PIN lookup */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[12px] font-bold text-[#1a1a1ab3] mb-1">
+                    City / District
+                  </label>
+                  <input
+                    type="text"
+                    readOnly
+                    tabIndex={-1}
+                    value={checkoutPinDetails?.city ?? ''}
+                    placeholder="Auto-filled from PIN"
+                    className="input !pt-0 !bg-[#f7f7f7] text-[#1a1a1a] font-semibold cursor-default"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-bold text-[#1a1a1ab3] mb-1">
+                    State
+                  </label>
+                  <input
+                    type="text"
+                    readOnly
+                    tabIndex={-1}
+                    value={checkoutPinDetails?.state ?? ''}
+                    placeholder="Auto-filled from PIN"
+                    className="input !pt-0 !bg-[#f7f7f7] text-[#1a1a1a] font-semibold cursor-default"
+                  />
+                </div>
+              </div>
+
+              {checkoutPinDetails && checkoutPinDetails.localities.length > 0 && (
+                <div>
+                  <label className="block text-[12px] font-bold text-[#1a1a1ab3] mb-1">
+                    Post Office / Area
+                  </label>
+                  <select
+                    value={selectedLocality}
+                    onChange={(e) => setSelectedLocality(e.target.value)}
+                    className="input !pt-0 bg-white font-semibold cursor-pointer"
+                  >
+                    {checkoutPinDetails.localities.map((loc) => (
+                      <option key={loc} value={loc}>
+                        {loc}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[12px] font-bold text-[#1a1a1ab3] mb-1">
+                  House / Flat, Building &amp; Street Address *
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoComplete="street-address"
+                  maxLength={200}
+                  value={customerAddress}
+                  onChange={(e) => {
+                    setCustomerAddress(e.target.value);
+                    if (fieldErrors.address) {
+                      setFieldErrors((prev) => ({ ...prev, address: undefined }));
+                    }
+                  }}
+                  onBlur={() => {
+                    if (customerAddress.trim().length > 0) {
+                      const err = validateIndianAddress(customerAddress);
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        address: err ?? undefined,
+                      }));
+                    }
+                  }}
+                  placeholder="402 Skyview Residency, Near MG Road"
+                  aria-invalid={Boolean(fieldErrors.address)}
+                  className={`input !pt-0 ${
+                    fieldErrors.address ? '!border-[#f83a3a] !bg-[#fff5f5]' : ''
+                  }`}
+                />
+                {fieldErrors.address && (
+                  <p className="text-[11.5px] font-semibold text-[#f83a3a] mt-1 mb-0 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{fieldErrors.address}</span>
+                  </p>
+                )}
               </div>
 
               <div className="bg-white rounded-[8px] p-4 border border-[#1a1a1a]/10 flex items-center justify-between">
@@ -238,8 +544,14 @@ export function CartDrawer({
                 </span>
               </div>
 
-              <button type="submit" className="button-primary w-full">
-                Confirm Reservation
+              <button
+                type="submit"
+                disabled={checkingCheckoutPin}
+                className="button-primary w-full disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {checkingCheckoutPin
+                  ? 'Verifying Delivery PIN...'
+                  : 'Confirm Reservation'}
               </button>
             </form>
           ) : (

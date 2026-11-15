@@ -1,10 +1,12 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
+  AlertCircle,
   ArrowLeft,
   BadgePercent,
   Check,
   ChevronRight,
   Heart,
+  Loader2,
   MapPin,
   Minus,
   PackageCheck,
@@ -13,13 +15,17 @@ import {
   Share2,
   ShieldCheck,
   Sparkles,
-  Star,
-  ThumbsUp,
   Truck,
 } from 'lucide-react';
 import { PRODUCTS, type CategoryName, type Product, formatINR } from '../data/catalog';
 import { CollectibleImage } from './CollectibleImage';
 import { ProductCard } from './ProductCard';
+import {
+  getLastVerifiedPincode,
+  lookupIndianPincode,
+  saveVerifiedPincode,
+  type PincodeDetails,
+} from '../utils/indianPincode';
 
 interface ProductDetailPageProps {
   product: Product;
@@ -27,6 +33,7 @@ interface ProductDetailPageProps {
   onSelectProduct: (product: Product) => void;
   onAddToCart: (product: Product, variantId?: string, quantity?: number) => void;
   onBuyNow: (product: Product, variantId?: string, quantity?: number) => void;
+  onVerifiedPincode?: (details: PincodeDetails) => void;
 }
 
 const HIGHLIGHTS_BY_CATEGORY: Record<CategoryName, string[]> = {
@@ -70,137 +77,13 @@ const MATERIAL_BY_CATEGORY: Record<CategoryName, string> = {
   'Manga Frame': 'Engineered Wood Frame · Acrylic Front · Warm LED Strip',
 };
 
-const REVIEWS_BY_CATEGORY: Record<
-  CategoryName,
-  Array<{
-    id: string;
-    author: string;
-    city: string;
-    rating: number;
-    title: string;
-    body: string;
-    date: string;
-    helpful: number;
-  }>
-> = {
-  'Anime Keychains': [
-    {
-      id: 'rev-1',
-      author: 'Rohan M.',
-      city: 'Pune',
-      rating: 5,
-      title: 'Solid metal weight & zero paint bleed',
-      body: 'Way heavier and cleaner than regular plastic keychains. Looks awesome hanging on my desk pegboard.',
-      date: 'Verified Buyer · 1 week ago',
-      helpful: 14,
-    },
-    {
-      id: 'rev-2',
-      author: 'Aarav K.',
-      city: 'Bengaluru',
-      rating: 5,
-      title: 'Great gift packaging',
-      body: 'Ordered two keychains for my setup and a friend. Came neatly bubble-wrapped in 4 days.',
-      date: 'Verified Buyer · 3 weeks ago',
-      helpful: 9,
-    },
-  ],
-  'Anime Action Figures': [
-    {
-      id: 'rev-1',
-      author: 'Siddharth V.',
-      city: 'Mumbai',
-      rating: 5,
-      title: 'Shelf presence is unreal for the price',
-      body: 'Sculpt and face details match the Instagram reel closely. Base fits tight and arrived completely intact.',
-      date: 'Verified Buyer · 5 days ago',
-      helpful: 22,
-    },
-    {
-      id: 'rev-2',
-      author: 'Neha S.',
-      city: 'New Delhi',
-      rating: 4,
-      title: 'Well packed, super clean finish',
-      body: 'Was worried about shipping damage but the double carton kept the box crisp too. Worth picking up.',
-      date: 'Verified Buyer · 2 weeks ago',
-      helpful: 11,
-    },
-  ],
-  'Cars Figures': [
-    {
-      id: 'rev-1',
-      author: 'Kabir D.',
-      city: 'Hyderabad',
-      rating: 5,
-      title: 'Sharp die-cast paint and rolling wheels',
-      body: 'Panel lines and caliper details look super clean under desk lighting. Acrylic cover had zero scratches.',
-      date: 'Verified Buyer · 6 days ago',
-      helpful: 17,
-    },
-    {
-      id: 'rev-2',
-      author: 'Vikram P.',
-      city: 'Ahmedabad',
-      rating: 5,
-      title: 'Instant centerpiece on my monitor riser',
-      body: 'Solid alloy weight and accurate proportions. Delivery to Ahmedabad took just 3 days.',
-      date: 'Verified Buyer · 1 month ago',
-      helpful: 8,
-    },
-  ],
-  Katana: [
-    {
-      id: 'rev-1',
-      author: 'Arjun T.',
-      city: 'Chennai',
-      rating: 5,
-      title: 'Stand and wrap quality exceeded expectations',
-      body: 'The tsuka wrap is tight and the blade pattern looks sharp on the included black stand. Safely blunted for display.',
-      date: 'Verified Buyer · 4 days ago',
-      helpful: 26,
-    },
-    {
-      id: 'rev-2',
-      author: 'Devansh R.',
-      city: 'Jaipur',
-      rating: 5,
-      title: 'Packed like a tank',
-      body: 'Came in a reinforced long sleeve with foam blocks on both ends. Zero dents.',
-      date: 'Verified Buyer · 3 weeks ago',
-      helpful: 12,
-    },
-  ],
-  'Manga Frame': [
-    {
-      id: 'rev-1',
-      author: 'Ananya G.',
-      city: 'Kolkata',
-      rating: 5,
-      title: 'Warm backlight transforms the whole room',
-      body: 'The layered 3D panel looks crisp even when the LED is off, and turns into a cozy night lamp at night.',
-      date: 'Verified Buyer · 1 week ago',
-      helpful: 19,
-    },
-    {
-      id: 'rev-2',
-      author: 'Karan B.',
-      city: 'Chandigarh',
-      rating: 5,
-      title: 'Clean matte frame, no glare',
-      body: 'Print sharpness is awesome and USB cable reaches my PC easily. Highly recommend for desk setups.',
-      date: 'Verified Buyer · 2 weeks ago',
-      helpful: 10,
-    },
-  ],
-};
-
 export function ProductDetailPage({
   product,
   onBack,
   onSelectProduct,
   onAddToCart,
   onBuyNow,
+  onVerifiedPincode,
 }: ProductDetailPageProps) {
   const [selectedVariantId, setSelectedVariantId] = useState<string>(
     product.variants[0]?.id || 'std',
@@ -208,18 +91,27 @@ export function ProductDetailPage({
   const [quantity, setQuantity] = useState<number>(1);
   const [wishlisted, setWishlisted] = useState<boolean>(false);
   const [copiedShare, setCopiedShare] = useState<boolean>(false);
-  const [pincode, setPincode] = useState<string>('400050');
-  const [pincodeStatus, setPincodeStatus] = useState<string>(
-    'Delivery in 3–5 business days · Cash on Delivery available',
+  const [verifiedPin, setVerifiedPin] = useState<PincodeDetails | null>(() =>
+    getLastVerifiedPincode(),
   );
-  const [helpfulVotes, setHelpfulVotes] = useState<Record<string, boolean>>({});
+  const [pincode, setPincode] = useState<string>(
+    () => getLastVerifiedPincode()?.pincode ?? '',
+  );
+  const [checkingPincode, setCheckingPincode] = useState<boolean>(false);
+  const [pincodeError, setPincodeError] = useState<string | null>(null);
+  const pinAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     setSelectedVariantId(product.variants[0]?.id || 'std');
     setQuantity(1);
-    setHelpfulVotes({});
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [product]);
+
+  useEffect(() => {
+    return () => {
+      pinAbortRef.current?.abort();
+    };
+  }, []);
 
   const activeVariant =
     product.variants.find((v) => v.id === selectedVariantId) ||
@@ -241,21 +133,38 @@ export function ProductDetailPage({
   ).slice(0, 10);
 
   const highlights = HIGHLIGHTS_BY_CATEGORY[product.category];
-  const reviews = REVIEWS_BY_CATEGORY[product.category];
 
-  const handleCheckPincode = (e: FormEvent) => {
-    e.preventDefault();
-    const cleaned = pincode.replace(/\D/g, '');
-    if (cleaned.length !== 6) {
-      setPincodeStatus('Enter a valid 6-digit Indian PIN code to check delivery.');
-      return;
+  const handlePincodeInputChange = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, '').slice(0, 6);
+    setPincode(digitsOnly);
+    setPincodeError(null);
+    if (verifiedPin && digitsOnly !== verifiedPin.pincode) {
+      setVerifiedPin(null);
     }
-    const fastMetro = /^[1456]/.test(cleaned);
-    setPincodeStatus(
-      fastMetro
-        ? `Express delivery to ${cleaned} in 2–4 business days · Free insured shipping over ₹2,999`
-        : `Standard insured delivery to ${cleaned} in 4–6 business days · Tracking shared on dispatch`,
-    );
+  };
+
+  const handleCheckPincode = async (e: FormEvent) => {
+    e.preventDefault();
+    pinAbortRef.current?.abort();
+    const controller = new AbortController();
+    pinAbortRef.current = controller;
+
+    setCheckingPincode(true);
+    setPincodeError(null);
+
+    const result = await lookupIndianPincode(pincode, controller.signal);
+    if (controller.signal.aborted) return;
+
+    setCheckingPincode(false);
+    if (result.ok) {
+      setVerifiedPin(result.data);
+      setPincode(result.data.pincode);
+      saveVerifiedPincode(result.data);
+      onVerifiedPincode?.(result.data);
+    } else {
+      setVerifiedPin(null);
+      setPincodeError(result.message);
+    }
   };
 
   const handleShare = async () => {
@@ -377,26 +286,9 @@ export function ProductDetailPage({
               </div>
 
               {/* Product Title */}
-              <h1 className="text-[22px] sm:text-[30px] font-bold leading-[1.18] tracking-[-0.02em] text-[#1a1a1a] mb-3">
+              <h1 className="text-[22px] sm:text-[30px] font-bold leading-[1.18] tracking-[-0.02em] text-[#1a1a1a] pb-4 mb-4 border-b border-[#1a1a1a]/10">
                 {product.title}
               </h1>
-
-              {/* Rating Strip */}
-              <a
-                href="#pdp-reviews"
-                className="inline-flex flex-wrap items-center gap-2.5 pb-4 mb-4 border-b border-[#1a1a1a]/10 hover:opacity-85 transition-opacity"
-              >
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] bg-[#1a1a1a] text-white text-[12px] font-bold">
-                  <span>4.8</span>
-                  <Star className="w-3 h-3 fill-[#feb913] text-[#feb913]" />
-                </span>
-                <span className="text-[13px] font-semibold text-[#1a1a1ab3]">
-                  124 Collector Ratings &amp; {reviews.length * 14} Reviews
-                </span>
-                <span className="text-[12px] font-bold text-[#1a1a1a] bg-[#feb913]/25 px-2 py-0.5 rounded">
-                  Kage Assured
-                </span>
-              </a>
 
               {/* Pricing Block */}
               <div className="mb-5">
@@ -526,6 +418,7 @@ export function ProductDetailPage({
               <div className="pt-5 border-t border-[#1a1a1a]/10 mb-5">
                 <form
                   onSubmit={handleCheckPincode}
+                  noValidate
                   className="flex flex-col sm:flex-row sm:items-center gap-2.5"
                 >
                   <div className="flex items-center gap-2 text-[13px] font-bold text-[#1a1a1a] shrink-0">
@@ -535,24 +428,73 @@ export function ProductDetailPage({
                   <div className="flex items-center gap-2 flex-1 max-w-[300px]">
                     <input
                       type="text"
+                      inputMode="numeric"
+                      autoComplete="postal-code"
                       maxLength={6}
                       value={pincode}
-                      onChange={(e) => setPincode(e.target.value)}
-                      placeholder="Enter 6-digit PIN"
+                      onChange={(e) => handlePincodeInputChange(e.target.value)}
+                      placeholder="Enter 6-digit Indian PIN"
                       aria-label="Delivery PIN code"
-                      className="h-9 px-3 rounded-[6px] border border-[#1a1a1a]/20 text-[13px] font-semibold text-[#1a1a1a] w-full outline-none focus:border-[#1a1a1a]"
+                      aria-invalid={Boolean(pincodeError)}
+                      className={`h-9 px-3 rounded-[6px] border text-[13px] font-semibold text-[#1a1a1a] w-full outline-none transition-colors ${
+                        pincodeError
+                          ? 'border-[#f83a3a] bg-[#fff5f5]'
+                          : verifiedPin
+                            ? 'border-[#1a1a1a]/35 bg-[#f7f7f7] focus:border-[#1a1a1a]'
+                            : 'border-[#1a1a1a]/20 focus:border-[#1a1a1a]'
+                      }`}
                     />
                     <button
                       type="submit"
-                      className="h-9 px-4 rounded-[6px] bg-[#1a1a1a] text-white text-[12px] font-bold cursor-pointer hover:bg-black shrink-0"
+                      disabled={checkingPincode}
+                      className="h-9 px-4 rounded-[6px] bg-[#1a1a1a] text-white text-[12px] font-bold cursor-pointer hover:bg-black disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-1.5 shrink-0"
                     >
-                      Check
+                      {checkingPincode ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Checking</span>
+                        </>
+                      ) : (
+                        <span>Check</span>
+                      )}
                     </button>
                   </div>
                 </form>
-                <p className="text-[12.5px] font-medium text-[#1a1a1ab3] mt-2 m-0">
-                  {pincodeStatus}
-                </p>
+
+                {pincodeError ? (
+                  <p
+                    role="alert"
+                    className="text-[12.5px] font-semibold text-[#f83a3a] mt-2 m-0 flex items-start gap-1.5"
+                  >
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>{pincodeError}</span>
+                  </p>
+                ) : verifiedPin ? (
+                  <div className="mt-3 rounded-[10px] bg-[#f7f7f7] border border-[#1a1a1a]/[0.08] px-3.5 py-2.5 text-[#1a1a1a]">
+                    <p className="text-[12.5px] font-bold flex items-center gap-2 m-0 text-[#1a1a1a]">
+                      <span className="w-4 h-4 rounded-full bg-[#1a1a1a] text-[#feb913] inline-flex items-center justify-center shrink-0">
+                        <Check className="w-2.5 h-2.5" strokeWidth={3} />
+                      </span>
+                      <span>
+                        Delivers to {verifiedPin.locality}, {verifiedPin.city},{' '}
+                        {verifiedPin.state} ({verifiedPin.pincode})
+                      </span>
+                    </p>
+                    <p className="text-[12px] text-[#1a1a1ab3] font-medium mt-1 mb-0 pl-6">
+                      {verifiedPin.expressEligible ? 'Express' : 'Insured'} delivery
+                      in{' '}
+                      <span className="font-bold text-[#1a1a1a]">
+                        {verifiedPin.deliveryDays}
+                      </span>{' '}
+                      · Auto-filled for checkout
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-[12.5px] font-medium text-[#1a1a1ab3] mt-2 m-0">
+                    Enter your 6-digit Indian PIN code to verify serviceability, city
+                    &amp; state.
+                  </p>
+                )}
               </div>
 
               {/* 4-Badge Trust Row */}
@@ -632,109 +574,6 @@ export function ProductDetailPage({
             </div>
           </div>
         </div>
-
-        {/* Ratings & Customer Reviews Section */}
-        <section
-          id="pdp-reviews"
-          className="mt-8 bg-white rounded-[12px] p-5 sm:p-7 shadow-[0_5px_15px_0_#1A1A1A1A] border border-[#1a1a1a]/[0.06]"
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            <div className="lg:col-span-4">
-              <h2 className="text-[22px] sm:text-[26px] font-bold text-[#1a1a1a] mb-2">
-                Collector Ratings &amp; Reviews
-              </h2>
-              <div className="flex items-baseline gap-3 mb-4">
-                <span className="text-[42px] font-black text-[#1a1a1a] leading-none">
-                  4.8
-                </span>
-                <div>
-                  <div className="flex items-center gap-0.5 text-[#feb913]">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-current" />
-                    ))}
-                  </div>
-                  <p className="text-[12px] font-semibold text-[#1a1a1ab3] mt-1 m-0">
-                    Based on 124 verified collector orders
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {[
-                  { stars: '5★', pct: 82 },
-                  { stars: '4★', pct: 13 },
-                  { stars: '3★', pct: 4 },
-                  { stars: '2★', pct: 1 },
-                  { stars: '1★', pct: 0 },
-                ].map((bar) => (
-                  <div key={bar.stars} className="flex items-center gap-2.5 text-[12px] font-bold">
-                    <span className="w-6 text-[#1a1a1a]">{bar.stars}</span>
-                    <div className="flex-1 h-2 rounded-full bg-[#f0f0f0] overflow-hidden">
-                      <div
-                        className="h-full bg-[#feb913] rounded-full"
-                        style={{ width: `${bar.pct}%` }}
-                      />
-                    </div>
-                    <span className="w-8 text-right text-[#1a1a1ab3] tabular-nums">
-                      {bar.pct}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="lg:col-span-8 space-y-4">
-              {reviews.map((rev) => {
-                const voted = Boolean(helpfulVotes[rev.id]);
-                return (
-                  <div
-                    key={rev.id}
-                    className="p-4 rounded-[10px] bg-[#f7f7f7] border border-[#1a1a1a]/[0.06]"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#1a1a1a] text-white text-[11px] font-bold">
-                          {rev.rating}★
-                        </span>
-                        <h3 className="text-[15px] font-bold text-[#1a1a1a] m-0">
-                          {rev.title}
-                        </h3>
-                      </div>
-                      <span className="text-[11px] font-semibold text-[#1a1a1ab3]">
-                        {rev.date}
-                      </span>
-                    </div>
-                    <p className="text-[13.5px] leading-[1.55] text-[#1a1a1ab3] mb-3">
-                      {rev.body}
-                    </p>
-                    <div className="flex items-center justify-between text-[12px] font-semibold text-[#1a1a1ab3]">
-                      <span>
-                        {rev.author} · {rev.city}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setHelpfulVotes((prev) => ({
-                            ...prev,
-                            [rev.id]: !prev[rev.id],
-                          }))
-                        }
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-colors cursor-pointer ${
-                          voted
-                            ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
-                            : 'bg-white text-[#1a1a1a] border-[#1a1a1a]/15 hover:border-[#1a1a1a]'
-                        }`}
-                      >
-                        <ThumbsUp className="w-3 h-3" />
-                        <span>Helpful ({rev.helpful + (voted ? 1 : 0)})</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
 
         {/* Questions & Answers */}
         <section className="mt-6 bg-white rounded-[12px] p-5 sm:p-7 shadow-[0_5px_15px_0_#1A1A1A1A] border border-[#1a1a1a]/[0.06]">

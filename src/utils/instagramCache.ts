@@ -355,6 +355,26 @@ export function hydrateInstagramPosts(canonicalPosts: Product[]): Product[] {
   return canonicalPosts;
 }
 
+function yieldToMainThread(): Promise<void> {
+  return new Promise((resolve) => {
+    if (
+      typeof window !== 'undefined' &&
+      typeof window.requestAnimationFrame === 'function'
+    ) {
+      window.requestAnimationFrame(() => window.setTimeout(resolve, 0));
+    } else {
+      setTimeout(resolve, 0);
+    }
+  });
+}
+
+export async function hydrateInstagramPostsAsync(
+  canonicalPosts: Product[],
+): Promise<Product[]> {
+  await yieldToMainThread();
+  return hydrateInstagramPosts(canonicalPosts);
+}
+
 export function loadCatalogViewState(
   signature: string,
 ): StoredCatalogViewState | null {

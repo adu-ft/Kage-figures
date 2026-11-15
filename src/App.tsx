@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Clock,
   IndianRupee,
+  Loader2,
   Lock,
   Mail,
   MapPin,
@@ -31,6 +32,7 @@ import { HeroSlideshow } from './components/HeroSlideshow';
 import { LegalPage, type LegalPageId } from './components/LegalPage';
 import { PriceRangeFilter } from './components/PriceRangeFilter';
 import { ProductCard } from './components/ProductCard';
+import { ProductCardSkeleton } from './components/ProductCardSkeleton';
 import { ProductDetailPage } from './components/ProductDetailPage';
 import {
   CartDrawer,
@@ -39,12 +41,16 @@ import {
 } from './components/DrawersAndModals';
 import {
   getCatalogSignature,
-  hydrateInstagramPosts,
+  hydrateInstagramPostsAsync,
   loadCatalogViewState,
   loadStoredCart,
   saveCatalogViewState,
   saveStoredCart,
 } from './utils/instagramCache';
+import {
+  getLastVerifiedPincode,
+  type PincodeDetails,
+} from './utils/indianPincode';
 
 const LEGAL_HASH_MAP: Record<string, LegalPageId> = {
   '#privacy-policy': 'privacy',
@@ -123,15 +129,25 @@ function orderProductsByIds(
 }
 
 export default function App() {
-  const catalogProducts = useMemo(() => hydrateInstagramPosts(PRODUCTS), []);
-  const catalogSignature = useMemo(
-    () => getCatalogSignature(catalogProducts),
-    [catalogProducts],
-  );
+  const catalogSignature = useMemo(() => getCatalogSignature(PRODUCTS), []);
   const initialViewState = useMemo(
     () => loadCatalogViewState(catalogSignature),
     [catalogSignature],
   );
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
+  const [isHydratingCatalog, setIsHydratingCatalog] = useState<boolean>(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    hydrateInstagramPostsAsync(PRODUCTS).then((posts) => {
+      if (cancelled) return;
+      setCatalogProducts(posts);
+      setIsHydratingCatalog(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const [selectedCategory, setSelectedCategory] = useState<string>(() =>
     initialViewState?.selectedCategory &&
@@ -175,6 +191,8 @@ export default function App() {
     null,
   );
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [verifiedPincode, setVerifiedPincode] =
+    useState<PincodeDetails | null>(() => getLastVerifiedPincode());
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
 
@@ -233,7 +251,8 @@ export default function App() {
           savedScrollYRef.current = window.scrollY;
         }
         const id = decodeURIComponent(hash.slice('#product-'.length));
-        const found = catalogProducts.find((p) => p.id === id) || null;
+        const source = catalogProducts.length > 0 ? catalogProducts : PRODUCTS;
+        const found = source.find((p) => p.id === id) || null;
         prevSubpageOpenRef.current = Boolean(found);
         setActiveLegalPage(null);
         setSelectedProduct(found);
@@ -483,20 +502,6 @@ export default function App() {
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  const shuffledFeaturedAll = useMemo(() => {
-    const featuredBase = catalogProducts.filter(
-      (p) => p.sectionGroup === 'featured',
-    );
-    if (allShuffleSeed === 0) {
-      const restored = orderProductsByIds(
-        featuredBase,
-        initialViewState?.shuffledFeaturedIds,
-      );
-      if (restored) return restored;
-    }
-    return shuffleMixedByCategory(featuredBase);
-  }, [allShuffleSeed, catalogProducts, initialViewState]);
-
   const shuffledAllProducts = useMemo(() => {
     if (allShuffleSeed === 0) {
       const restored = orderProductsByIds(
@@ -509,21 +514,23 @@ export default function App() {
   }, [allShuffleSeed, catalogProducts, initialViewState]);
 
   useEffect(() => {
+    if (isHydratingCatalog || catalogProducts.length === 0) return;
     saveCatalogViewState({
       signature: catalogSignature,
       selectedCategory,
       priceRange,
       visibleDesktopCount,
-      shuffledFeaturedIds: shuffledFeaturedAll.map((p) => p.id),
+      shuffledFeaturedIds: [],
       shuffledAllIds: shuffledAllProducts.map((p) => p.id),
       savedAt: Date.now(),
     });
   }, [
+    isHydratingCatalog,
+    catalogProducts.length,
     catalogSignature,
     selectedCategory,
     priceRange,
     visibleDesktopCount,
-    shuffledFeaturedAll,
     shuffledAllProducts,
   ]);
 
@@ -533,9 +540,7 @@ export default function App() {
 
   const categoryBaseCatalogue =
     selectedCategory === 'All'
-      ? isPriceFiltered
-        ? shuffledAllProducts
-        : shuffledFeaturedAll
+      ? shuffledAllProducts
       : catalogProducts.filter((p) => p.category === selectedCategory);
 
   const filteredCatalogue = categoryBaseCatalogue.filter(
@@ -569,6 +574,7 @@ export default function App() {
             onSelectProduct={handleOpenProduct}
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
+            onVerifiedPincode={setVerifiedPincode}
           />
         )}
 
@@ -725,8 +731,20 @@ export default function App() {
           <div className="container-site">
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 mb-6 md:mb-8">
               <div>
-                <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-[#1a1a1ab3] mb-2">
-                  Instagram Catalogue · {filteredCatalogue.length} Collectibles
+                <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-[#1a1a1ab3] mb-2 inline-flex items-center gap-2">
+                  {isHydratingCatalog ? (
+                    <>
+                      <Loader2
+                        className="w-3.5 h-3.5 text-[#f83a3a] animate-spin"
+                        aria-hidden="true"
+                      />
+                      <span>Instagram Catalogue · Loading collectibles...</span>
+                    </>
+                  ) : (
+                    <span>
+                      Instagram Catalogue · {filteredCatalogue.length} Collectibles
+                    </span>
+                  )}
                 </p>
                 <h2 className="text-[36px] md:text-[48px] font-bold leading-[1.08] tracking-[-0.02em] text-[#1a1a1a] m-0">
                   Featured collection
@@ -767,11 +785,7 @@ export default function App() {
                           const isActive = selectedCategory === category;
                           const baseList =
                             category === 'All'
-                              ? isPriceFiltered
-                                ? catalogProducts
-                                : catalogProducts.filter(
-                                    (p) => p.sectionGroup === 'featured',
-                                  )
+                              ? catalogProducts
                               : catalogProducts.filter(
                                   (p) => p.category === category,
                                 );
@@ -892,7 +906,19 @@ export default function App() {
               </div>
             </div>
 
-            {displayedFeatured.length === 0 ? (
+            {isHydratingCatalog ? (
+              <div
+                ref={featuredScrollRef}
+                role="status"
+                aria-live="polite"
+                aria-label="Loading featured collectibles"
+                className="mobile-h-scroll no-scrollbar md:grid-cols-3 lg:grid-cols-5"
+              >
+                {Array.from({ length: 10 }, (_, idx) => (
+                  <ProductCardSkeleton key={`featured-skeleton-${idx}`} />
+                ))}
+              </div>
+            ) : displayedFeatured.length === 0 ? (
               <div className="bg-white rounded-[12px] p-8 sm:p-12 text-center border border-[#1a1a1a]/[0.07] shadow-[0_5px_15px_0_#1A1A1A0D]">
                 <p className="text-[18px] font-bold text-[#1a1a1a] mb-2">
                   No collectibles matched this price &amp; category filter
@@ -924,7 +950,7 @@ export default function App() {
               </div>
             )}
 
-            {remainingFeatured > 0 && (
+            {!isHydratingCatalog && remainingFeatured > 0 && (
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <button
                   type="button"
@@ -998,14 +1024,18 @@ export default function App() {
               ref={saleScrollRef}
               className="mobile-h-scroll no-scrollbar md:grid-cols-3 lg:grid-cols-5"
             >
-              {saleProducts.slice(0, 5).map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onQuickView={handleOpenProduct}
-                  onAddToCart={handleAddToCart}
-                />
-              ))}
+              {isHydratingCatalog
+                ? Array.from({ length: 5 }, (_, idx) => (
+                    <ProductCardSkeleton key={`sale-skeleton-${idx}`} />
+                  ))
+                : saleProducts.slice(0, 5).map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onQuickView={handleOpenProduct}
+                      onAddToCart={handleAddToCart}
+                    />
+                  ))}
             </div>
           </div>
         </section>
@@ -1117,14 +1147,18 @@ export default function App() {
               ref={vaultScrollRef}
               className="mobile-h-scroll no-scrollbar md:grid-cols-3 lg:grid-cols-5"
             >
-              {vaultProducts.slice(0, 5).map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onQuickView={handleOpenProduct}
-                  onAddToCart={handleAddToCart}
-                />
-              ))}
+              {isHydratingCatalog
+                ? Array.from({ length: 5 }, (_, idx) => (
+                    <ProductCardSkeleton key={`vault-skeleton-${idx}`} />
+                  ))
+                : vaultProducts.slice(0, 5).map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onQuickView={handleOpenProduct}
+                      onAddToCart={handleAddToCart}
+                    />
+                  ))}
             </div>
           </div>
         </section>
@@ -1483,11 +1517,13 @@ export default function App() {
         onUpdateQuantity={handleUpdateCartQty}
         onRemoveItem={handleRemoveCartItem}
         onClearCart={() => setCartItems([])}
+        verifiedPincode={verifiedPincode}
+        onVerifiedPincode={setVerifiedPincode}
       />
 
       <SearchModal
         isOpen={searchOpen}
-        products={catalogProducts}
+        products={catalogProducts.length > 0 ? catalogProducts : PRODUCTS}
         onClose={() => setSearchOpen(false)}
         onSelectProduct={handleOpenProduct}
       />
