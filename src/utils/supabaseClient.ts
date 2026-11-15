@@ -14,7 +14,14 @@ let browserClient: SupabaseClient | null = null;
 
 export function getSupabaseClient(): SupabaseClient | null {
   if (browserClient) return browserClient;
-  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return null;
+  if (
+    !SUPABASE_URL ||
+    !SUPABASE_PUBLISHABLE_KEY ||
+    SUPABASE_URL.includes('your-project-ref') ||
+    SUPABASE_PUBLISHABLE_KEY.startsWith('MY_SUPABASE_')
+  ) {
+    return null;
+  }
   browserClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
   return browserClient;
 }

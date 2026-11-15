@@ -14,8 +14,12 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     return;
   }
 
-  const { supabaseUrl, supabaseSecretKey, supabasePublishableKey } =
-    getEnvConfig();
+  const {
+    supabaseUrl,
+    supabaseSecretKey,
+    supabasePublishableKey,
+    hasPlaceholder,
+  } = getEnvConfig();
   const supabase = getServerSupabaseClient();
 
   let supabaseHost = '';
@@ -31,9 +35,13 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     sendJson(res, 200, {
       ok: true,
       supabaseConfigured: false,
+      placeholderDetected: hasPlaceholder,
       supabaseHost,
       hasSecretKey: Boolean(supabaseSecretKey),
       hasPublishableKey: Boolean(supabasePublishableKey),
+      hint: hasPlaceholder
+        ? 'Vercel is using placeholder values from .env.example. Replace SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY, VITE_SUPABASE_URL, and VITE_SUPABASE_PUBLISHABLE_KEY in Vercel Settings -> Environment Variables and redeploy.'
+        : 'Add SUPABASE_URL and SUPABASE_SECRET_KEY in Vercel Settings -> Environment Variables and redeploy.',
     });
     return;
   }

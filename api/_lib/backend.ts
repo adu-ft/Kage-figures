@@ -37,16 +37,39 @@ function normalizeSupabaseUrl(raw: string): string {
   return `https://${cleaned}`;
 }
 
+function isPlaceholderValue(value: string): boolean {
+  const lower = value.toLowerCase();
+  return (
+    lower.includes('your-project-ref') ||
+    lower.startsWith('my_supabase_') ||
+    lower === 'my_admin_passcode'
+  );
+}
+
 export function getEnvConfig() {
-  const supabaseUrl = normalizeSupabaseUrl(
+  const rawUrl = normalizeSupabaseUrl(
     process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
   );
-  const supabaseSecretKey = cleanEnv(process.env.SUPABASE_SECRET_KEY);
-  const supabasePublishableKey = cleanEnv(
+  const rawSecret = cleanEnv(process.env.SUPABASE_SECRET_KEY);
+  const rawPub = cleanEnv(
     process.env.SUPABASE_PUBLISHABLE_KEY ||
       process.env.VITE_SUPABASE_PUBLISHABLE_KEY,
   );
-  const adminPasscode = cleanEnv(process.env.ADMIN_PASSCODE) || '5522';
+  const rawPasscode = cleanEnv(process.env.ADMIN_PASSCODE);
+
+  const hasPlaceholderUrl = Boolean(rawUrl && isPlaceholderValue(rawUrl));
+  const hasPlaceholderKey = Boolean(
+    (rawSecret && isPlaceholderValue(rawSecret)) ||
+      (!rawSecret && rawPub && isPlaceholderValue(rawPub)),
+  );
+
+  const supabaseUrl = hasPlaceholderUrl ? '' : rawUrl;
+  const supabaseSecretKey =
+    rawSecret && isPlaceholderValue(rawSecret) ? '' : rawSecret;
+  const supabasePublishableKey =
+    rawPub && isPlaceholderValue(rawPub) ? '' : rawPub;
+  const adminPasscode =
+    rawPasscode && !isPlaceholderValue(rawPasscode) ? rawPasscode : '5522';
 
   const sessionSecret = crypto
     .createHash('sha256')
@@ -61,6 +84,7 @@ export function getEnvConfig() {
     supabasePublishableKey,
     adminPasscode,
     sessionSecret,
+    hasPlaceholder: hasPlaceholderUrl || hasPlaceholderKey,
   };
 }
 
