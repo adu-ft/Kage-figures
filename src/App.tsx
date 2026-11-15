@@ -8,7 +8,6 @@ import {
   Clock,
   IndianRupee,
   Loader2,
-  Lock,
   Mail,
   MapPin,
   Shield,
@@ -1509,26 +1508,6 @@ export default function App() {
                   </li>
                 </ul>
               </div>
-            </div>
-          </div>
-
-          {/* Accepted Payments & Security Strip */}
-          <div className="py-5 border-b border-[#1a1a1a]/10 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-[12.5px] font-semibold text-[#1a1a1ab3]">
-              <Lock className="w-3.5 h-3.5 text-[#15803d]" />
-              <span>100% Secure Checkout · All prices inclusive of GST</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.04em] text-[#1a1a1a]">
-              {['UPI', 'Visa', 'Mastercard', 'RuPay', 'NetBanking', 'COD'].map(
-                (method) => (
-                  <span
-                    key={method}
-                    className="px-2.5 py-1 rounded-[5px] bg-[#f0f0f0] border border-[#1a1a1a]/10"
-                  >
-                    {method}
-                  </span>
-                ),
-              )}
             </div>
           </div>
 
