@@ -1,0 +1,6 @@
+{
+  "name": "Kage Figures",
+  "description": "Kage Figures — Curated Anime Keychains, Anime Action Figures, Cars Figures, Katana Replicas & 3D Backlit Manga Frames with pan-India delivery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
