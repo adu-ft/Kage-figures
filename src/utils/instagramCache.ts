@@ -1,7 +1,7 @@
 import type { Product } from '../data/catalog';
 
 const CACHE_VERSION = 'v1';
-const POSTS_STORAGE_KEY = `kage_figures_ig_posts_${CACHE_VERSION}`;
+const POSTS_STORAGE_KEY = 'kage_figures_ig_posts_v3';
 const LOADED_URLS_KEY = `kage_figures_ig_loaded_urls_${CACHE_VERSION}`;
 const VIEW_STATE_KEY = `kage_figures_view_state_${CACHE_VERSION}`;
 const CART_STORAGE_KEY = `kage_figures_cart_${CACHE_VERSION}`;
@@ -313,9 +313,21 @@ export async function resolvePersistedMediaUrl(
 }
 
 export function getCatalogSignature(posts: Product[]): string {
+  let hash = 2166136261;
+  for (let i = 0; i < posts.length; i++) {
+    const p = posts[i];
+    const variantSig = p.variants
+      .map((v) => `${v.id}:${v.label}:${v.priceDelta}`)
+      .join(',');
+    const token = `${p.id}|${p.price}|${p.compareAtPrice ?? ''}|${variantSig};`;
+    for (let j = 0; j < token.length; j++) {
+      hash ^= token.charCodeAt(j);
+      hash = Math.imul(hash, 16777619);
+    }
+  }
   const firstId = posts[0]?.id ?? '';
   const lastId = posts[posts.length - 1]?.id ?? '';
-  return `${CACHE_VERSION}:${posts.length}:${firstId}:${lastId}`;
+  return `${CACHE_VERSION}:${posts.length}:${firstId}:${lastId}:${(hash >>> 0).toString(36)}`;
 }
 
 export function hydrateInstagramPosts(canonicalPosts: Product[]): Product[] {

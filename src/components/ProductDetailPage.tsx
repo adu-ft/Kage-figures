@@ -335,7 +335,11 @@ export function ProductDetailPage({
                 <span className="block text-[12px] font-bold uppercase tracking-[0.06em] text-[#1a1a1ab3] mb-2">
                   Select Edition
                 </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div
+                  className={`grid grid-cols-1 gap-2.5 ${
+                    product.variants.length > 1 ? 'sm:grid-cols-2' : ''
+                  }`}
+                >
                   {product.variants.map((variant) => {
                     const isSelected = variant.id === activeVariant?.id;
                     const vPrice = Math.max(49, product.price + variant.priceDelta);

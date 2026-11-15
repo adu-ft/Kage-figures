@@ -448,7 +448,6 @@ export const PRODUCTS: Product[] = INSTAGRAM_CATALOGUE_URLS.map(
     }
 
     const fallbackUrl = FALLBACK_BY_CATEGORY[category];
-    const giftDelta = basePrice <= 399 ? 99 : 199;
 
     return {
       id: `kf-ig-${editionNum}`,
@@ -471,18 +470,8 @@ export const PRODUCTS: Product[] = INSTAGRAM_CATALOGUE_URLS.map(
       description: `Featured on @kage.figures Instagram catalogue (Drop #${editionNum}). Authentic ${category.toLowerCase()} piece (${dimensions}) packed securely for insured pan-India delivery.`,
       variants:
         status === 'Pre-Order'
-          ? [
-              { id: 'full', label: 'Full Allocation', priceDelta: 0 },
-              {
-                id: 'deposit',
-                label: '50% Booking Slot',
-                priceDelta: -Math.round(basePrice * 0.5),
-              },
-            ]
-          : [
-              { id: 'std', label: 'Standard Edition', priceDelta: 0 },
-              { id: 'dx', label: 'Gift Box Edition', priceDelta: giftDelta },
-            ],
+          ? [{ id: 'full', label: 'Full Allocation', priceDelta: 0 }]
+          : [{ id: 'std', label: 'Standard Edition', priceDelta: 0 }],
     };
   },
 );
