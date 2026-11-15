@@ -231,6 +231,7 @@ export function CartDrawer({
         variantLabel: item.variantLabel,
         unitPrice: item.unitPrice,
         quantity: item.quantity,
+        imageUrl: item.product.imageUrl,
       })),
       subtotalInr: subtotal,
     });

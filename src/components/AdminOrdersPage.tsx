@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import {
   AlertCircle,
   ArrowLeft,
+  ArrowUpRight,
   Check,
   Copy,
   Database,
@@ -17,7 +18,8 @@ import {
   Trash2,
   User,
 } from 'lucide-react';
-import { formatINR } from '../data/catalog';
+import { formatINR, type Product } from '../data/catalog';
+import { CollectibleImage } from './CollectibleImage';
 import {
   adminLogin,
   deleteAdminOrder,
@@ -115,10 +117,16 @@ create policy "Allow public newsletter insert"
   with check (length(trim(email)) >= 5 and position('@' in email) > 1);`;
 
 interface AdminOrdersPageProps {
+  products: Product[];
+  onSelectProduct: (product: Product) => void;
   onBack: () => void;
 }
 
-export function AdminOrdersPage({ onBack }: AdminOrdersPageProps) {
+export function AdminOrdersPage({
+  products,
+  onSelectProduct,
+  onBack,
+}: AdminOrdersPageProps) {
   const [token, setToken] = useState<string>(() => {
     try {
       return window.sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '';
@@ -260,6 +268,18 @@ export function AdminOrdersPage({ onBack }: AdminOrdersPageProps) {
       // Fallback ignored
     }
   };
+
+  const productLookup = useMemo(() => {
+    const byId = new Map<string, Product>();
+    const byCode = new Map<string, Product>();
+    const byTitle = new Map<string, Product>();
+    for (const p of products) {
+      byId.set(p.id, p);
+      byCode.set(p.code.trim().toUpperCase(), p);
+      byTitle.set(p.title.trim().toLowerCase(), p);
+    }
+    return { byId, byCode, byTitle };
+  }, [products]);
 
   const filteredOrders = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -754,26 +774,104 @@ export function AdminOrdersPage({ onBack }: AdminOrdersPageProps) {
                             </div>
 
                             <div className="lg:col-span-7 bg-[#f7f7f7] rounded-[8px] p-3.5 border border-[#1a1a1a]/[0.06] flex flex-col justify-between">
-                              <div className="space-y-1.5">
+                              <div className="space-y-2">
                                 {Array.isArray(order.items) &&
-                                  order.items.map((item, idx) => (
-                                    <div
-                                      key={`${item.productId}-${idx}`}
-                                      className="flex items-center justify-between gap-3 text-[13px]"
-                                    >
-                                      <span className="text-[#1a1a1a] font-semibold truncate">
-                                        {item.quantity} × {item.title}{' '}
-                                        <span className="text-[#1a1a1ab3] font-normal">
-                                          ({item.code})
-                                        </span>
-                                      </span>
-                                      <span className="font-bold text-[#1a1a1a] tabular-nums shrink-0">
-                                        {formatINR(
-                                          item.unitPrice * item.quantity,
+                                  order.items.map((item, idx) => {
+                                    const matchedProduct =
+                                      productLookup.byId.get(item.productId) ||
+                                      productLookup.byCode.get(
+                                        String(item.code || '')
+                                          .trim()
+                                          .toUpperCase(),
+                                      ) ||
+                                      productLookup.byTitle.get(
+                                        String(item.title || '')
+                                          .trim()
+                                          .toLowerCase(),
+                                      ) ||
+                                      null;
+                                    const thumbSrc =
+                                      matchedProduct?.imageUrl ||
+                                      item.imageUrl ||
+                                      '';
+                                    const productHref = matchedProduct
+                                      ? `#product-${encodeURIComponent(matchedProduct.id)}`
+                                      : undefined;
+
+                                    const itemContent = (
+                                      <>
+                                        <div className="w-12 h-12 rounded-[8px] overflow-hidden bg-white border border-[#1a1a1a]/10 shrink-0 flex items-center justify-center">
+                                          {thumbSrc ? (
+                                            <CollectibleImage
+                                              src={thumbSrc}
+                                              fallbackSrc={
+                                                matchedProduct?.fallbackUrl
+                                              }
+                                              alt={item.title}
+                                              loading="eager"
+                                              className="w-full h-full object-cover"
+                                            />
+                                          ) : (
+                                            <Package className="w-5 h-5 text-[#1a1a1a]/40" />
+                                          )}
+                                        </div>
+
+                                        <div className="min-w-0 flex-1">
+                                          <p className="text-[13px] font-semibold text-[#1a1a1a] group-hover/item:text-[#f83a3a] transition-colors truncate m-0 flex items-center gap-1">
+                                            <span className="truncate">
+                                              {item.quantity} × {item.title}
+                                            </span>
+                                            {matchedProduct && (
+                                              <ArrowUpRight
+                                                className="w-3.5 h-3.5 shrink-0 opacity-60 group-hover/item:opacity-100 group-hover/item:translate-x-0.5 group-hover/item:-translate-y-0.5 transition-all"
+                                                aria-hidden="true"
+                                              />
+                                            )}
+                                          </p>
+                                          <p className="text-[11.5px] text-[#1a1a1ab3] m-0 mt-0.5 truncate">
+                                            {item.code}
+                                            {item.variantLabel
+                                              ? ` · ${item.variantLabel}`
+                                              : ''}
+                                            {matchedProduct
+                                              ? ' · View Product'
+                                              : ''}
+                                          </p>
+                                        </div>
+                                      </>
+                                    );
+
+                                    return (
+                                      <div
+                                        key={`${item.productId}-${idx}`}
+                                        className="flex items-center justify-between gap-3"
+                                      >
+                                        {matchedProduct && productHref ? (
+                                          <a
+                                            href={productHref}
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              onSelectProduct(matchedProduct);
+                                            }}
+                                            className="group/item flex items-center gap-3 min-w-0 flex-1 rounded-[8px] p-1 -m-1 hover:bg-white/80 transition-colors cursor-pointer"
+                                            title={`Open product page: ${item.title}`}
+                                          >
+                                            {itemContent}
+                                          </a>
+                                        ) : (
+                                          <div className="flex items-center gap-3 min-w-0 flex-1 p-1 -m-1">
+                                            {itemContent}
+                                          </div>
                                         )}
-                                      </span>
-                                    </div>
-                                  ))}
+
+                                        <span className="font-bold text-[13px] text-[#1a1a1a] tabular-nums shrink-0">
+                                          {formatINR(
+                                            item.unitPrice * item.quantity,
+                                          )}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
                               </div>
                               <div className="pt-2.5 mt-2.5 border-t border-[#1a1a1a]/10 flex items-center justify-between">
                                 <span className="text-[12px] font-bold uppercase tracking-[0.05em] text-[#1a1a1ab3]">

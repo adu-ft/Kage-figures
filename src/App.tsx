@@ -207,6 +207,7 @@ export default function App() {
   const savedScrollYRef = useRef<number>(0);
   const catalogScrollYRef = useRef<number>(0);
   const returnToCatalogRef = useRef<boolean>(false);
+  const returnToAdminRef = useRef<boolean>(false);
   const prevSubpageOpenRef = useRef<boolean>(false);
   const prevHashRef = useRef<string>(
     typeof window !== 'undefined' ? window.location.hash : '',
@@ -276,6 +277,7 @@ export default function App() {
         }
         prevSubpageOpenRef.current = true;
         returnToCatalogRef.current = false;
+        returnToAdminRef.current = false;
         setBrowsePageOpen(false);
         setSelectedProduct(null);
         setActiveLegalPage(null);
@@ -354,12 +356,17 @@ export default function App() {
   };
 
   const handleOpenProduct = (product: Product) => {
-    if (browsePageOpen) {
+    if (adminPageOpen) {
+      returnToAdminRef.current = true;
+      returnToCatalogRef.current = false;
+    } else if (browsePageOpen) {
       catalogScrollYRef.current = window.scrollY;
       returnToCatalogRef.current = true;
-    } else if (!selectedProduct && !activeLegalPage && !adminPageOpen) {
+      returnToAdminRef.current = false;
+    } else if (!selectedProduct && !activeLegalPage) {
       savedScrollYRef.current = window.scrollY;
       returnToCatalogRef.current = false;
+      returnToAdminRef.current = false;
     }
     prevSubpageOpenRef.current = true;
     setAdminPageOpen(false);
@@ -468,6 +475,17 @@ export default function App() {
       handleNavigate('#featured-collection', categoryFilter);
       return;
     }
+    if (selectedProduct && returnToAdminRef.current) {
+      returnToAdminRef.current = false;
+      setSelectedProduct(null);
+      setAdminPageOpen(true);
+      prevHashRef.current = '#vault-admin';
+      if (window.location.hash !== '#vault-admin') {
+        window.history.replaceState({ admin: true }, '', '#vault-admin');
+      }
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      return;
+    }
     if (selectedProduct && returnToCatalogRef.current) {
       setSelectedProduct(null);
       setBrowsePageOpen(true);
@@ -482,6 +500,7 @@ export default function App() {
     }
     prevSubpageOpenRef.current = false;
     returnToCatalogRef.current = false;
+    returnToAdminRef.current = false;
     setAdminPageOpen(false);
     setBrowsePageOpen(false);
     setSelectedProduct(null);
@@ -702,7 +721,11 @@ export default function App() {
         )}
 
         {!selectedProduct && !activeLegalPage && adminPageOpen && (
-          <AdminOrdersPage onBack={() => handleBackToCatalogue()} />
+          <AdminOrdersPage
+            products={catalogProducts.length > 0 ? catalogProducts : PRODUCTS}
+            onSelectProduct={handleOpenProduct}
+            onBack={() => handleBackToCatalogue()}
+          />
         )}
 
         {!selectedProduct &&
