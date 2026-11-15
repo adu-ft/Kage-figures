@@ -28,6 +28,7 @@ import {
   validateIndianMobile,
   type PincodeDetails,
 } from '../utils/indianPincode';
+import { submitOrder } from '../utils/supabaseClient';
 
 export interface CartItem {
   product: Product;
@@ -82,11 +83,16 @@ export function CartDrawer({
       verifiedPincode?.locality ?? getLastVerifiedPincode()?.locality ?? '',
   );
   const [checkingCheckoutPin, setCheckingCheckoutPin] = useState(false);
+  const [submittingOrder, setSubmittingOrder] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<CheckoutErrors>({});
   const [confirmedSummary, setConfirmedSummary] = useState<{
     name: string;
     phone: string;
+    address: string;
     destination: string;
+    deliveryEta: string;
+    items: Array<{ title: string; quantity: number; lineTotal: number }>;
+    total: number;
   } | null>(null);
   const pinAbortRef = useRef<AbortController | null>(null);
 
@@ -204,14 +210,53 @@ export function CartDrawer({
     }
 
     setFieldErrors({});
-    const orderNum = `KF-${Math.floor(10000 + Math.random() * 89999)}`;
+    setSubmittingOrder(true);
+    const cleanedName = customerName.trim().replace(/\s+/g, ' ');
     const areaPart = selectedLocality || activePin.locality;
-    setConfirmedSummary({
-      name: customerName.trim().replace(/\s+/g, ' '),
-      phone: `+91 ${mobileCheck.normalized}`,
-      destination: `${areaPart}, ${activePin.city}, ${activePin.state} - ${activePin.pincode}`,
+
+    const orderResult = await submitOrder({
+      customerName: cleanedName,
+      customerPhone: mobileCheck.normalized,
+      shippingAddress: customerAddress.trim(),
+      locality: areaPart,
+      city: activePin.city,
+      state: activePin.state,
+      pincode: activePin.pincode,
+      deliveryEstimate: activePin.deliveryDays,
+      items: items.map((item) => ({
+        productId: item.product.id,
+        code: item.product.code,
+        title: item.product.title,
+        variantId: item.variantId,
+        variantLabel: item.variantLabel,
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+      })),
+      subtotalInr: subtotal,
     });
-    setOrderConfirmedId(orderNum);
+
+    setSubmittingOrder(false);
+    if (!orderResult.ok) {
+      setFieldErrors({
+        address: orderResult.error || 'Could not place order. Please check your details.',
+      });
+      return;
+    }
+
+    setConfirmedSummary({
+      name: cleanedName,
+      phone: `+91 ${mobileCheck.normalized}`,
+      address: customerAddress.trim(),
+      destination: `${areaPart}, ${activePin.city}, ${activePin.state} - ${activePin.pincode}`,
+      deliveryEta: activePin.deliveryDays,
+      items: items.map((item) => ({
+        title: item.product.title,
+        quantity: item.quantity,
+        lineTotal: item.unitPrice * item.quantity,
+      })),
+      total: subtotal,
+    });
+    setOrderConfirmedId(orderResult.orderNumber);
     onClearCart();
   };
 
@@ -259,23 +304,72 @@ export function CartDrawer({
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {orderConfirmedId ? (
-            <div className="bg-white rounded-[12px] p-6 shadow-[0_5px_15px_0_#1A1A1A1A] text-center">
-              <CheckCircle2 className="w-12 h-12 text-[#15803d] mx-auto mb-3" />
-              <span className="badge-pill mb-3">Reservation Confirmed</span>
-              <h4 className="text-[22px] font-bold text-[#1a1a1a] mb-2">
-                Order #{orderConfirmedId}
-              </h4>
-              <p className="text-[14.5px] text-[#1a1a1ab3] mb-3">
-                Thank you, {confirmedSummary?.name || 'Collector'}. Our vault
-                team will share inspection photos and insured dispatch details via
-                SMS at {confirmedSummary?.phone || customerPhone}.
-              </p>
-              {confirmedSummary?.destination && (
-                <p className="text-[12.5px] font-semibold text-[#1a1a1a] bg-[#f7f7f7] rounded-[8px] px-3 py-2 mb-6 inline-flex items-center justify-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-[#f83a3a] shrink-0" />
-                  <span>{confirmedSummary.destination}</span>
+            <div className="bg-white rounded-[12px] p-5 sm:p-6 shadow-[0_5px_15px_0_#1A1A1A1A] border border-[#1a1a1a]/[0.06]">
+              <div className="text-center pb-4 mb-4 border-b border-[#1a1a1a]/10">
+                <CheckCircle2 className="w-12 h-12 text-[#15803d] mx-auto mb-2.5" />
+                <span className="badge-pill mb-2.5">Order Placed Successfully</span>
+                <h4 className="text-[22px] font-extrabold text-[#1a1a1a] m-0">
+                  Order #{orderConfirmedId}
+                </h4>
+                <p className="text-[13.5px] text-[#1a1a1ab3] mt-1.5 mb-0">
+                  Thank you, {confirmedSummary?.name || 'Collector'}. Your order
+                  details are saved—no online payment was charged.
                 </p>
+              </div>
+
+              {confirmedSummary && (
+                <div className="space-y-3 mb-5 text-left">
+                  <div className="bg-[#f7f7f7] rounded-[8px] p-3.5 border border-[#1a1a1a]/[0.06] space-y-1.5 text-[12.5px]">
+                    <p className="font-bold text-[#1a1a1a] m-0 flex items-start gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-[#f83a3a] shrink-0 mt-0.5" />
+                      <span>
+                        {confirmedSummary.address}, {confirmedSummary.destination}
+                      </span>
+                    </p>
+                    <p className="text-[#1a1a1ab3] m-0">
+                      Phone:{' '}
+                      <strong className="text-[#1a1a1a]">
+                        {confirmedSummary.phone}
+                      </strong>{' '}
+                      · Est. Delivery:{' '}
+                      <strong className="text-[#1a1a1a]">
+                        {confirmedSummary.deliveryEta}
+                      </strong>
+                    </p>
+                  </div>
+
+                  <div className="bg-[#f7f7f7] rounded-[8px] p-3.5 border border-[#1a1a1a]/[0.06] space-y-1.5">
+                    {confirmedSummary.items.map((item, idx) => (
+                      <div
+                        key={`${item.title}-${idx}`}
+                        className="flex items-center justify-between gap-2 text-[12.5px]"
+                      >
+                        <span className="text-[#1a1a1a] font-medium truncate">
+                          {item.quantity} × {item.title}
+                        </span>
+                        <span className="font-bold text-[#1a1a1a] tabular-nums shrink-0">
+                          {formatINR(item.lineTotal)}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="pt-2 mt-1 border-t border-[#1a1a1a]/10 flex items-center justify-between text-[13.5px] font-extrabold text-[#1a1a1a]">
+                      <span>Order Total</span>
+                      <span className="tabular-nums">
+                        {formatINR(confirmedSummary.total)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-[12px] text-[#1a1a1ab3] leading-relaxed m-0">
+                    Our Kage Figures team will message you on WhatsApp / SMS at{' '}
+                    <strong className="text-[#1a1a1a]">
+                      {confirmedSummary.phone}
+                    </strong>{' '}
+                    with dispatch confirmation and payment options.
+                  </p>
+                </div>
               )}
+
               <button
                 type="button"
                 onClick={() => {
@@ -306,9 +400,9 @@ export function CartDrawer({
             </div>
           ) : checkoutOpen ? (
             <form onSubmit={handleCheckoutSubmit} noValidate className="space-y-4">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-1">
                 <h4 className="text-[18px] font-bold text-[#1a1a1a] m-0">
-                  Insured Dispatch Details
+                  Delivery Details
                 </h4>
                 <button
                   type="button"
@@ -318,6 +412,10 @@ export function CartDrawer({
                   Back to Bag
                 </button>
               </div>
+              <p className="text-[12px] text-[#1a1a1ab3] m-0">
+                No online payment required now. Fill your verified address to
+                place your order.
+              </p>
 
               <div>
                 <label className="block text-[12px] font-bold text-[#1a1a1ab3] mb-1">
@@ -546,12 +644,14 @@ export function CartDrawer({
 
               <button
                 type="submit"
-                disabled={checkingCheckoutPin}
+                disabled={checkingCheckoutPin || submittingOrder}
                 className="button-primary w-full disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {checkingCheckoutPin
                   ? 'Verifying Delivery PIN...'
-                  : 'Confirm Reservation'}
+                  : submittingOrder
+                    ? 'Placing Order...'
+                    : 'Place Order'}
               </button>
             </form>
           ) : (

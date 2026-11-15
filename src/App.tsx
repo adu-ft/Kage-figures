@@ -25,6 +25,7 @@ import {
   type Product,
   getActivePriceLabel,
 } from './data/catalog';
+import { AdminOrdersPage } from './components/AdminOrdersPage';
 import { CatalogBrowsePage } from './components/CatalogBrowsePage';
 import { CollectibleImage } from './components/CollectibleImage';
 import { Header } from './components/Header';
@@ -51,6 +52,7 @@ import {
   getLastVerifiedPincode,
   type PincodeDetails,
 } from './utils/indianPincode';
+import { subscribeNewsletter } from './utils/supabaseClient';
 
 const LEGAL_HASH_MAP: Record<string, LegalPageId> = {
   '#privacy-policy': 'privacy',
@@ -191,11 +193,13 @@ export default function App() {
     null,
   );
   const [browsePageOpen, setBrowsePageOpen] = useState<boolean>(false);
+  const [adminPageOpen, setAdminPageOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [verifiedPincode, setVerifiedPincode] =
     useState<PincodeDetails | null>(() => getLastVerifiedPincode());
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
 
   const categoryMenuRef = useRef<HTMLDivElement>(null);
   const priceMenuRef = useRef<HTMLDivElement>(null);
@@ -262,9 +266,21 @@ export default function App() {
         const source = catalogProducts.length > 0 ? catalogProducts : PRODUCTS;
         const found = source.find((p) => p.id === id) || null;
         prevSubpageOpenRef.current = Boolean(found);
+        setAdminPageOpen(false);
         setBrowsePageOpen(false);
         setActiveLegalPage(null);
         setSelectedProduct(found);
+      } else if (hash === '#vault-admin' || hash === '#kage-admin') {
+        if (!prevSubpageOpenRef.current) {
+          savedScrollYRef.current = window.scrollY;
+        }
+        prevSubpageOpenRef.current = true;
+        returnToCatalogRef.current = false;
+        setBrowsePageOpen(false);
+        setSelectedProduct(null);
+        setActiveLegalPage(null);
+        setAdminPageOpen(true);
+        window.scrollTo({ top: 0, behavior: 'auto' });
       } else if (hash === '#catalogue') {
         const returningFromProduct =
           returnToCatalogRef.current && prevHash.startsWith('#product-');
@@ -273,6 +289,7 @@ export default function App() {
         }
         prevSubpageOpenRef.current = true;
         returnToCatalogRef.current = true;
+        setAdminPageOpen(false);
         setSelectedProduct(null);
         setActiveLegalPage(null);
         setBrowsePageOpen(true);
@@ -288,6 +305,7 @@ export default function App() {
         }
         prevSubpageOpenRef.current = true;
         returnToCatalogRef.current = false;
+        setAdminPageOpen(false);
         setBrowsePageOpen(false);
         setSelectedProduct(null);
         setActiveLegalPage(LEGAL_HASH_MAP[hash]);
@@ -296,6 +314,7 @@ export default function App() {
         const wasOpen = prevSubpageOpenRef.current;
         prevSubpageOpenRef.current = false;
         returnToCatalogRef.current = false;
+        setAdminPageOpen(false);
         setBrowsePageOpen(false);
         setSelectedProduct(null);
         setActiveLegalPage(null);
@@ -338,11 +357,12 @@ export default function App() {
     if (browsePageOpen) {
       catalogScrollYRef.current = window.scrollY;
       returnToCatalogRef.current = true;
-    } else if (!selectedProduct && !activeLegalPage) {
+    } else if (!selectedProduct && !activeLegalPage && !adminPageOpen) {
       savedScrollYRef.current = window.scrollY;
       returnToCatalogRef.current = false;
     }
     prevSubpageOpenRef.current = true;
+    setAdminPageOpen(false);
     setBrowsePageOpen(false);
     setActiveLegalPage(null);
     setSelectedProduct(product);
@@ -354,11 +374,12 @@ export default function App() {
   };
 
   const handleOpenCatalogBrowse = () => {
-    if (!selectedProduct && !activeLegalPage && !browsePageOpen) {
+    if (!selectedProduct && !activeLegalPage && !browsePageOpen && !adminPageOpen) {
       savedScrollYRef.current = window.scrollY;
     }
     prevSubpageOpenRef.current = true;
     returnToCatalogRef.current = true;
+    setAdminPageOpen(false);
     setSelectedProduct(null);
     setActiveLegalPage(null);
     setBrowsePageOpen(true);
@@ -370,11 +391,12 @@ export default function App() {
   };
 
   const handleOpenLegalPage = (pageId: LegalPageId) => {
-    if (!selectedProduct && !activeLegalPage && !browsePageOpen) {
+    if (!selectedProduct && !activeLegalPage && !browsePageOpen && !adminPageOpen) {
       savedScrollYRef.current = window.scrollY;
     }
     prevSubpageOpenRef.current = true;
     returnToCatalogRef.current = false;
+    setAdminPageOpen(false);
     setBrowsePageOpen(false);
     setSelectedProduct(null);
     setActiveLegalPage(pageId);
@@ -388,16 +410,22 @@ export default function App() {
 
   const handleNavigate = (sectionId: string, filterCategory?: string) => {
     const wasOnSubpage =
-      selectedProduct !== null || activeLegalPage !== null || browsePageOpen;
+      selectedProduct !== null ||
+      activeLegalPage !== null ||
+      browsePageOpen ||
+      adminPageOpen;
     if (wasOnSubpage) {
       prevSubpageOpenRef.current = false;
       returnToCatalogRef.current = false;
+      setAdminPageOpen(false);
       setBrowsePageOpen(false);
       setSelectedProduct(null);
       setActiveLegalPage(null);
       if (
         window.location.hash.startsWith('#product-') ||
         window.location.hash === '#catalogue' ||
+        window.location.hash === '#vault-admin' ||
+        window.location.hash === '#kage-admin' ||
         LEGAL_HASH_MAP[window.location.hash]
       ) {
         prevHashRef.current = '';
@@ -454,12 +482,15 @@ export default function App() {
     }
     prevSubpageOpenRef.current = false;
     returnToCatalogRef.current = false;
+    setAdminPageOpen(false);
     setBrowsePageOpen(false);
     setSelectedProduct(null);
     setActiveLegalPage(null);
     if (
       window.location.hash.startsWith('#product-') ||
       window.location.hash === '#catalogue' ||
+      window.location.hash === '#vault-admin' ||
+      window.location.hash === '#kage-admin' ||
       LEGAL_HASH_MAP[window.location.hash]
     ) {
       prevHashRef.current = '';
@@ -569,11 +600,19 @@ export default function App() {
     );
   };
 
-  const handleNewsletterSubmit = (e: FormEvent) => {
+  const handleNewsletterSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!newsletterEmail.trim()) return;
-    setNewsletterSubscribed(true);
-    setNewsletterEmail('');
+    const cleaned = newsletterEmail.trim();
+    if (!cleaned || newsletterSubmitting) return;
+    setNewsletterSubmitting(true);
+    const result = await subscribeNewsletter(cleaned);
+    setNewsletterSubmitting(false);
+    if (result.ok) {
+      setNewsletterSubscribed(true);
+      setNewsletterEmail('');
+    } else if (result.error) {
+      showToast(result.error);
+    }
   };
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -662,32 +701,47 @@ export default function App() {
           />
         )}
 
-        {!selectedProduct && !activeLegalPage && browsePageOpen && (
-          <CatalogBrowsePage
-            products={catalogProducts}
-            categoryBaseProducts={categoryBaseCatalogue}
-            filteredProducts={filteredCatalogue}
-            isHydrating={isHydratingCatalog}
-            categories={FILTER_CATEGORIES}
-            selectedCategory={selectedCategory}
-            priceRange={priceRange}
-            activePriceLabel={activePriceLabel}
-            isPriceFiltered={isPriceFiltered}
-            onSelectCategory={handleSelectCategory}
-            onPriceRangeChange={handlePriceRangeChange}
-            onResetFilters={handleResetFilters}
-            onSelectProduct={handleOpenProduct}
-            onAddToCart={handleAddToCart}
-            onBack={() => handleBackToCatalogue()}
-          />
+        {!selectedProduct && !activeLegalPage && adminPageOpen && (
+          <AdminOrdersPage onBack={() => handleBackToCatalogue()} />
         )}
+
+        {!selectedProduct &&
+          !activeLegalPage &&
+          !adminPageOpen &&
+          browsePageOpen && (
+            <CatalogBrowsePage
+              products={catalogProducts}
+              categoryBaseProducts={categoryBaseCatalogue}
+              filteredProducts={filteredCatalogue}
+              isHydrating={isHydratingCatalog}
+              categories={FILTER_CATEGORIES}
+              selectedCategory={selectedCategory}
+              priceRange={priceRange}
+              activePriceLabel={activePriceLabel}
+              isPriceFiltered={isPriceFiltered}
+              onSelectCategory={handleSelectCategory}
+              onPriceRangeChange={handlePriceRangeChange}
+              onResetFilters={handleResetFilters}
+              onSelectProduct={handleOpenProduct}
+              onAddToCart={handleAddToCart}
+              onBack={() => handleBackToCatalogue()}
+            />
+          )}
 
         <div
           className={
-            selectedProduct || activeLegalPage || browsePageOpen ? 'hidden' : ''
+            selectedProduct ||
+            activeLegalPage ||
+            browsePageOpen ||
+            adminPageOpen
+              ? 'hidden'
+              : ''
           }
           aria-hidden={Boolean(
-            selectedProduct || activeLegalPage || browsePageOpen,
+            selectedProduct ||
+              activeLegalPage ||
+              browsePageOpen ||
+              adminPageOpen,
           )}
         >
           {/* 2. Slideshow Section */}
@@ -1303,8 +1357,12 @@ export default function App() {
                         className="input"
                       />
                     </div>
-                    <button type="submit" className="button-primary shrink-0">
-                      Subscribe
+                    <button
+                      type="submit"
+                      disabled={newsletterSubmitting}
+                      className="button-primary shrink-0 disabled:opacity-60"
+                    >
+                      {newsletterSubmitting ? 'Saving...' : 'Subscribe'}
                     </button>
                   </form>
                 )}
