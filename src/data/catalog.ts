@@ -114,7 +114,7 @@ export const HERO_SLIDES: HeroSlide[] = [
     filterCategory: 'Anime Action Figures',
     imageUrl: sasukeHeroImg,
     fallbackUrl: actionFiguresCoverImg,
-    imagePositionClass: 'object-[64%_center] md:object-center',
+    imagePositionClass: 'object-[70%_center] md:object-center',
     badgeText: 'New Arrival',
   },
   {

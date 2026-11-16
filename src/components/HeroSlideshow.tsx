@@ -49,7 +49,7 @@ export function HeroSlideshow({ onSelectSlideAction }: HeroSlideshowProps) {
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="relative w-full h-[460px] sm:h-[580px] md:h-[640px] lg:h-[700px] bg-[#1a1a1a]">
+      <div className="relative w-full h-[100dvh] min-h-[540px] bg-[#1a1a1a]">
         {HERO_SLIDES.map((slide, idx) => (
           <div
             key={slide.id}
@@ -82,7 +82,7 @@ export function HeroSlideshow({ onSelectSlideAction }: HeroSlideshowProps) {
         ))}
 
         {/* Hero Foreground Overlay */}
-        <div className="relative z-10 h-full container-site flex flex-col justify-end pb-7 sm:pb-14 md:pb-16 pt-20">
+        <div className="relative z-10 h-full container-site flex flex-col justify-end pb-8 sm:pb-14 md:pb-16 pt-24">
           <div className="max-w-[780px]">
             <div className="flex items-center gap-2 mb-1.5 sm:mb-3">
               {/* Hero eyebrow */}
