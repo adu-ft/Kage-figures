@@ -382,7 +382,7 @@ export function AdminOrdersPage({
             <div className="w-11 h-11 rounded-full bg-[#1a1a1a] text-[#feb913] flex items-center justify-center mb-4">
               <Lock className="w-5 h-5" />
             </div>
-            <h1 className="text-[24px] font-bold text-[#1a1a1a] leading-tight mb-1.5">
+            <h1 className="font-gang-of-three text-[25px] font-normal tracking-[0.02em] text-[#1a1a1a] leading-tight mb-1.5">
               Kage Figures Vault Admin
             </h1>
             <p className="text-[14px] text-[#1a1a1ab3] mb-6">

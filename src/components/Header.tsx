@@ -99,12 +99,11 @@ export function Header({
               />
             )}
             <span
-              className={`text-[12px] sm:text-[17px] font-extrabold tracking-tight transition-colors ${
+              className={`font-gang-of-three text-[15px] sm:text-[20px] font-normal tracking-[0.04em] leading-none transition-colors ${
                 isScrolled
                   ? 'text-[#1a1a1a]'
                   : 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.75)]'
               }`}
-              style={{ fontFamily: "'Montserrat', sans-serif" }}
             >
               KAGE FIGURES
             </span>

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { HERO_SLIDES } from '../data/catalog';
-import { CollectibleImage } from './CollectibleImage';
 
 interface HeroSlideshowProps {
   onSelectSlideAction: (targetSection: string, filterCategory?: string) => void;
@@ -20,6 +19,18 @@ export function HeroSlideshow({ onSelectSlideAction }: HeroSlideshowProps) {
   }, [isPaused]);
 
   const currentSlide = HERO_SLIDES[activeIndex];
+  const nextIndex = (activeIndex + 1) % HERO_SLIDES.length;
+
+  useEffect(() => {
+    const nextUrl = HERO_SLIDES[nextIndex]?.imageUrl;
+    if (!nextUrl) return;
+    const timer = window.setTimeout(() => {
+      const preloader = new Image();
+      preloader.decoding = 'async';
+      preloader.src = nextUrl;
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [nextIndex]);
 
   const handlePrev = () => {
     setActiveIndex(
@@ -49,12 +60,21 @@ export function HeroSlideshow({ onSelectSlideAction }: HeroSlideshowProps) {
                 : 'opacity-0 pointer-events-none'
             }`}
           >
-            <CollectibleImage
+            <img
               src={slide.imageUrl}
-              fallbackSrc={slide.fallbackUrl}
               alt={slide.headline}
+              width={3840}
+              height={2160}
+              referrerPolicy="no-referrer"
               loading={idx === 0 || idx === activeIndex ? 'eager' : 'lazy'}
+              decoding={idx === 0 ? 'sync' : 'async'}
               fetchPriority={idx === 0 ? 'high' : 'low'}
+              onError={(e) => {
+                const img = e.currentTarget;
+                if (slide.fallbackUrl && img.src !== slide.fallbackUrl) {
+                  img.src = slide.fallbackUrl;
+                }
+              }}
               className={`w-full h-full object-cover ${slide.imagePositionClass || 'object-center'}`}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/30" />
@@ -75,9 +95,8 @@ export function HeroSlideshow({ onSelectSlideAction }: HeroSlideshowProps) {
             </div>
 
             <h2
-              className="text-[22px] sm:text-[36px] lg:text-[44px] font-extrabold leading-[1.1] tracking-[-0.02em] text-white mb-3 sm:mb-4 max-w-[18ch] sm:max-w-[22ch]"
+              className="font-gang-of-three text-[25px] sm:text-[38px] lg:text-[48px] font-normal leading-[1.12] tracking-[0.02em] text-white mb-3 sm:mb-4 max-w-[18ch] sm:max-w-[22ch]"
               style={{
-                fontFamily: "'Montserrat', sans-serif",
                 textWrap: 'balance',
               }}
             >

@@ -862,7 +862,7 @@ export default function App() {
           <div className="container-site">
             <div className="mb-5 md:mb-7 flex items-end justify-between gap-4">
               <div>
-                <h2 className="text-[30px] sm:text-[36px] md:text-[42px] font-bold leading-[1.1] tracking-[-0.02em] text-[#1a1a1a] m-0">
+                <h2 className="font-gang-of-three text-[30px] sm:text-[36px] md:text-[44px] font-normal leading-[1.1] tracking-[0.02em] text-[#1a1a1a] m-0">
                   Collection list
                 </h2>
                 <button
@@ -951,7 +951,7 @@ export default function App() {
                   />
                   <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors duration-200" />
                   <div className="absolute inset-0 flex items-center justify-center p-4 text-center">
-                    <span className="text-[22px] sm:text-[24px] font-extrabold tracking-[-0.02em] leading-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]">
+                    <span className="font-gang-of-three text-[22px] sm:text-[25px] font-normal tracking-[0.03em] leading-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]">
                       {block.title}
                     </span>
                   </div>
@@ -963,7 +963,7 @@ export default function App() {
 
         {/* 4. Scrolling Text Section */}
         <section
-          className="shopify-section shopify-section--scrolling-text bg-[#f0f0f0] py-6 border-y border-[#1a1a1a]/10 overflow-hidden"
+          className="shopify-section shopify-section--scrolling-text bg-[#f0f0f0] py-4 md:py-5 border-y border-[#1a1a1a]/10 overflow-hidden"
           aria-label="Store highlights"
         >
           <div className="animate-marquee items-center">
@@ -972,12 +972,12 @@ export default function App() {
                 key={`${item}-${index}`}
                 className="flex items-center shrink-0"
               >
-                <span className="text-[32px] md:text-[48px] font-extrabold tracking-[-0.02em] text-[#1a1a1a] whitespace-nowrap px-6">
+                <span className="font-gang-of-three text-[20px] sm:text-[24px] md:text-[28px] font-normal tracking-[0.03em] text-[#1a1a1a] whitespace-nowrap px-5 sm:px-6 leading-none">
                   {item}
                 </span>
                 <span
                   aria-hidden="true"
-                  className="inline-block w-3 h-3 rounded-full bg-[#feb913] shadow-[0_0_8px_2px_#FEB91380]"
+                  className="inline-block w-2 h-2 rounded-full bg-[#feb913] shadow-[0_0_8px_2px_#FEB91380]"
                 />
               </div>
             ))}
@@ -1007,7 +1007,7 @@ export default function App() {
                     </span>
                   )}
                 </p>
-                <h2 className="text-[36px] md:text-[48px] font-bold leading-[1.08] tracking-[-0.02em] text-[#1a1a1a] m-0">
+                <h2 className="font-gang-of-three text-[34px] md:text-[48px] font-normal leading-[1.08] tracking-[0.02em] text-[#1a1a1a] m-0">
                   Featured collection
                 </h2>
               </div>
@@ -1245,7 +1245,7 @@ export default function App() {
                 <div className="flex items-center gap-3 mb-2">
                   <span className="badge-pill">Limited Markdowns</span>
                 </div>
-                <h2 className="text-[36px] md:text-[48px] font-bold leading-[1.08] tracking-[-0.02em] text-[#1a1a1a] m-0">
+                <h2 className="font-gang-of-three text-[34px] md:text-[48px] font-normal leading-[1.08] tracking-[0.02em] text-[#1a1a1a] m-0">
                   On Sale
                 </h2>
               </div>
@@ -1311,7 +1311,7 @@ export default function App() {
               <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.1em] text-[#f83a3a] block mb-1">
                 Kage Figures · Indore, India
               </span>
-              <h2 className="text-[28px] sm:text-[40px] md:text-[52px] font-black tracking-[-0.03em] leading-[1] text-[#1a1a1a] select-none mb-1.5 md:mb-2">
+              <h2 className="font-gang-of-three text-[32px] sm:text-[46px] md:text-[60px] font-normal tracking-[0.04em] leading-[1.02] text-[#1a1a1a] select-none mb-2">
                 KAGE FIGURES
               </h2>
               <p className="text-[12.5px] sm:text-[14px] md:text-[15px] leading-[1.45] font-medium text-[#1a1a1ab3] max-w-[600px] mx-auto m-0">
@@ -1371,7 +1371,7 @@ export default function App() {
                 <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-[#1a1a1ab3] mb-2">
                   Upcoming Allocations
                 </p>
-                <h2 className="text-[36px] md:text-[48px] font-bold leading-[1.08] tracking-[-0.02em] text-[#1a1a1a] m-0">
+                <h2 className="font-gang-of-three text-[34px] md:text-[48px] font-normal leading-[1.08] tracking-[0.02em] text-[#1a1a1a] m-0">
                   Collector&apos;s Vault
                 </h2>
               </div>
@@ -1435,7 +1435,7 @@ export default function App() {
             {/* Newsletter & Brand Support Details */}
             <div className="md:col-span-5 space-y-6">
               <div>
-                <h3 className="text-[28px] md:text-[32px] font-bold text-[#1a1a1a] leading-tight mb-3">
+                <h3 className="font-gang-of-three text-[26px] md:text-[32px] font-normal tracking-[0.02em] text-[#1a1a1a] leading-tight mb-3">
                   Join the Collector Dispatch
                 </h3>
                 <p className="text-[15px] text-[#1a1a1ab3] mb-5 max-w-[420px]">

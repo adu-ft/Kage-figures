@@ -1,9 +1,9 @@
 import { INSTAGRAM_CATALOGUE_URLS } from './instagramUrls';
 import luffyHeroImg from '../assets/images/luffy_hero_figure.webp';
 import sasukeHeroImg from '../assets/images/sasuke_hero_figure.webp';
-import katanaHeroImg from '../assets/images/katana_hero_display_1794732764415.jpg';
-import carsHeroImg from '../assets/images/diecast_car_hero_1794732765289.jpg';
-import mangaFrameHeroImg from '../assets/images/manga_frame_hero_1794732765573.jpg';
+import katanaHeroImg from '../assets/images/katana_hero_display.webp';
+import carsHeroImg from '../assets/images/diecast_car_hero.webp';
+import mangaFrameHeroImg from '../assets/images/manga_frame_hero.webp';
 import keychainsCoverImg from '../assets/images/keychains_cover.webp';
 import actionFiguresCoverImg from '../assets/images/action_figures_cover.webp';
 import carsCoverImg from '../assets/images/cars_cover.webp';
@@ -33,7 +33,7 @@ export interface HeroSlide {
 
 export interface ImageLinkBlock {
   id: string;
-  title: CategoryName;
+  title: string;
   subtitle: string;
   categoryFilter: CategoryName;
   imageUrl: string;
@@ -100,7 +100,7 @@ export const HERO_SLIDES: HeroSlide[] = [
     filterCategory: 'All',
     imageUrl: luffyHeroImg,
     fallbackUrl: actionFiguresCoverImg,
-    imagePositionClass: 'object-[67%_center] md:object-center',
+    imagePositionClass: 'object-[72%_center] md:object-center',
     badgeText: '138 Drops Live',
   },
   {
@@ -114,7 +114,7 @@ export const HERO_SLIDES: HeroSlide[] = [
     filterCategory: 'Anime Action Figures',
     imageUrl: sasukeHeroImg,
     fallbackUrl: actionFiguresCoverImg,
-    imagePositionClass: 'object-center',
+    imagePositionClass: 'object-[64%_center] md:object-center',
     badgeText: 'New Arrival',
   },
   {
@@ -163,28 +163,12 @@ export const HERO_SLIDES: HeroSlide[] = [
 
 export const IMAGE_LINK_BLOCKS: ImageLinkBlock[] = [
   {
-    id: 'block-keychains',
-    title: 'Anime Keychains',
-    subtitle: 'Metal · Enamel · Silicone Charms',
-    categoryFilter: 'Anime Keychains',
-    imageUrl: keychainsCoverImg,
-    fallbackUrl: keychainsCoverImg,
-  },
-  {
     id: 'block-action-figures',
-    title: 'Anime Action Figures',
+    title: 'Anime Figures',
     subtitle: 'PVC Statues & Scale Sculptures',
     categoryFilter: 'Anime Action Figures',
     imageUrl: actionFiguresCoverImg,
     fallbackUrl: actionFiguresCoverImg,
-  },
-  {
-    id: 'block-cars',
-    title: 'Cars Figures',
-    subtitle: '1/18, 1/24 & 1/64 Die-Cast Models',
-    categoryFilter: 'Cars Figures',
-    imageUrl: carsCoverImg,
-    fallbackUrl: carsCoverImg,
   },
   {
     id: 'block-katana',
@@ -201,6 +185,22 @@ export const IMAGE_LINK_BLOCKS: ImageLinkBlock[] = [
     categoryFilter: 'Manga Frame',
     imageUrl: mangaFrameCoverImg,
     fallbackUrl: mangaFrameCoverImg,
+  },
+  {
+    id: 'block-cars',
+    title: 'Cars',
+    subtitle: '1/18, 1/24 & 1/64 Die-Cast Models',
+    categoryFilter: 'Cars Figures',
+    imageUrl: carsCoverImg,
+    fallbackUrl: carsCoverImg,
+  },
+  {
+    id: 'block-keychains',
+    title: 'Key Chains',
+    subtitle: 'Metal · Enamel · Silicone Charms',
+    categoryFilter: 'Anime Keychains',
+    imageUrl: keychainsCoverImg,
+    fallbackUrl: keychainsCoverImg,
   },
 ];
 

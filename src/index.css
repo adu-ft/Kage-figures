@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Gang Of Three";
+  src: url("/fonts/go3v2.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-gang-of-three {
+  font-family: "Gang Of Three", sans-serif;
+}
+
 :root {
   --spacing-0-5: 0.125rem;
   --spacing-1: 0.25rem;

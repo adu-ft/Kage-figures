@@ -259,7 +259,7 @@ export function LegalPage({ pageId, onSelectPage, onBack }: LegalPageProps) {
               <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#f83a3a] block mb-1.5">
                 Last Updated: {doc.lastUpdated}
               </span>
-              <h1 className="text-[28px] sm:text-[36px] font-extrabold tracking-[-0.02em] text-[#1a1a1a] leading-tight mb-2">
+              <h1 className="font-gang-of-three text-[28px] sm:text-[36px] font-normal tracking-[0.02em] text-[#1a1a1a] leading-tight mb-2">
                 {doc.title}
               </h1>
               <p className="text-[15px] text-[#1a1a1ab3] leading-relaxed m-0">

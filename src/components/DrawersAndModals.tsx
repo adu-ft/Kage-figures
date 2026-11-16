@@ -274,7 +274,7 @@ export function CartDrawer({
       />
       <aside className="relative z-10 w-full max-w-[460px] bg-[#f0f0f0] h-full flex flex-col shadow-2xl">
         <div className="flex items-center justify-between px-6 py-5 bg-white border-b border-[#1a1a1a]/10">
-          <h3 className="text-[22px] font-bold text-[#1a1a1a] m-0">
+          <h3 className="font-gang-of-three text-[24px] font-normal tracking-[0.03em] text-[#1a1a1a] m-0">
             Collector Bag
           </h3>
           <button

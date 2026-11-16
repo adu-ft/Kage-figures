@@ -130,7 +130,7 @@ export function CatalogBrowsePage({
                 <span>Loading collectibles...</span>
               </p>
             )}
-            <h1 className="text-[30px] sm:text-[38px] md:text-[46px] font-bold leading-[1.08] tracking-[-0.02em] text-[#1a1a1a] m-0">
+            <h1 className="font-gang-of-three text-[30px] sm:text-[38px] md:text-[46px] font-normal leading-[1.08] tracking-[0.02em] text-[#1a1a1a] m-0">
               {selectedCategory === 'All'
                 ? 'Browse All Collectibles'
                 : selectedCategory}
