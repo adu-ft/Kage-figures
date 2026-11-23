@@ -113,6 +113,7 @@ export function ProductDetailPage({
     };
   }, []);
 
+  const isSoldOut = product.status === 'Sold Out';
   const activeVariant =
     product.variants.find((v) => v.id === selectedVariantId) ||
     product.variants[0];
@@ -120,9 +121,10 @@ export function ProductDetailPage({
     49,
     product.price + (activeVariant?.priceDelta || 0),
   );
-  const compareAt = product.compareAtPrice
-    ? product.compareAtPrice + (activeVariant?.priceDelta || 0)
-    : undefined;
+  const compareAt =
+    !isSoldOut && product.compareAtPrice
+      ? product.compareAtPrice + (activeVariant?.priceDelta || 0)
+      : undefined;
   const discountPct =
     compareAt && compareAt > unitPrice
       ? Math.round(((compareAt - unitPrice) / compareAt) * 100)
@@ -130,7 +132,13 @@ export function ProductDetailPage({
 
   const similarProducts = PRODUCTS.filter(
     (p) => p.category === product.category && p.id !== product.id,
-  ).slice(0, 10);
+  )
+    .sort((a, b) => {
+      const aSold = a.status === 'Sold Out' ? 1 : 0;
+      const bSold = b.status === 'Sold Out' ? 1 : 0;
+      return aSold - bSold;
+    })
+    .slice(0, 10);
 
   const highlights = HIGHLIGHTS_BY_CATEGORY[product.category];
 
@@ -227,10 +235,17 @@ export function ProductDetailPage({
                   alt={product.title}
                   loading="eager"
                   fetchPriority="high"
-                  className="w-full h-full object-cover"
+                  className={`w-full h-full object-cover ${
+                    isSoldOut ? 'grayscale-[40%] opacity-80' : ''
+                  }`}
                 />
 
-                {discountPct ? (
+                {isSoldOut ? (
+                  <span className="px-3.5 py-1.5 rounded-full bg-[#1a1a1a]/92 text-white border border-white/15 text-[12px] font-extrabold uppercase tracking-[0.06em] shadow-md absolute top-3 left-3 inline-flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#f83a3a]" />
+                    <span>Sold Out</span>
+                  </span>
+                ) : discountPct ? (
                   <span className="badge-pill absolute top-3 left-3">
                     Save {discountPct}%
                   </span>
@@ -283,6 +298,12 @@ export function ProductDetailPage({
                 >
                   {product.studio} · {product.category}
                 </button>
+                {isSoldOut && (
+                  <span className="px-2.5 py-1 rounded-full bg-[#1a1a1a] text-white text-[11px] font-extrabold uppercase tracking-[0.06em] inline-flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#f83a3a]" />
+                    <span>Sold Out</span>
+                  </span>
+                )}
               </div>
 
               {/* Product Title */}
@@ -378,45 +399,81 @@ export function ProductDetailPage({
               </div>
 
               {/* Quantity & Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
-                <div className="inline-flex items-center justify-between sm:justify-center border border-[#1a1a1a]/20 rounded-full h-[48px] px-2 bg-[#f7f7f7] shrink-0">
+              {isSoldOut ? (
+                <div className="mb-6 space-y-3">
+                  <div className="rounded-[10px] bg-[#fff5f5] border border-[#f83a3a]/25 px-4 py-3 flex items-start gap-2.5 text-[#1a1a1a]">
+                    <AlertCircle className="w-4 h-4 text-[#f83a3a] shrink-0 mt-0.5" />
+                    <p className="text-[13px] font-semibold m-0 leading-snug">
+                      This collectible is currently{' '}
+                      <span className="text-[#f83a3a] font-extrabold">
+                        Sold Out
+                      </span>{' '}
+                      and no longer available for order. Explore similar
+                      in-stock drops below.
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <button
+                      type="button"
+                      disabled
+                      className="h-[48px] px-7 rounded-full bg-[#1a1a1a]/10 text-[#1a1a1a]/50 text-[15px] font-extrabold inline-flex items-center justify-center flex-1 cursor-not-allowed"
+                    >
+                      Sold Out
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onBack(product.category)}
+                      className="h-[48px] px-7 rounded-full bg-[#1a1a1a] hover:bg-black text-white text-[14px] font-bold inline-flex items-center justify-center transition-colors cursor-pointer whitespace-nowrap"
+                    >
+                      Browse Available {product.category}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
+                  <div className="inline-flex items-center justify-between sm:justify-center border border-[#1a1a1a]/20 rounded-full h-[48px] px-2 bg-[#f7f7f7] shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      aria-label="Decrease quantity"
+                      className="w-9 h-9 inline-flex items-center justify-center cursor-pointer hover:text-[#f83a3a]"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="px-4 text-[15px] font-bold tabular-nums">
+                      {quantity}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setQuantity((q) => Math.min(10, q + 1))}
+                      aria-label="Increase quantity"
+                      className="w-9 h-9 inline-flex items-center justify-center cursor-pointer hover:text-[#f83a3a]"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    aria-label="Decrease quantity"
-                    className="w-9 h-9 inline-flex items-center justify-center cursor-pointer hover:text-[#f83a3a]"
+                    onClick={() =>
+                      onAddToCart(product, activeVariant?.id, quantity)
+                    }
+                    className="button-primary flex-1 !py-3.5"
                   >
-                    <Minus className="w-4 h-4" />
+                    Add to Bag · {formatINR(unitPrice * quantity)}
                   </button>
-                  <span className="px-4 text-[15px] font-bold tabular-nums">
-                    {quantity}
-                  </span>
+
                   <button
                     type="button"
-                    onClick={() => setQuantity((q) => Math.min(10, q + 1))}
-                    aria-label="Increase quantity"
-                    className="w-9 h-9 inline-flex items-center justify-center cursor-pointer hover:text-[#f83a3a]"
+                    onClick={() =>
+                      onBuyNow(product, activeVariant?.id, quantity)
+                    }
+                    className="h-[48px] px-7 rounded-full bg-[#feb913] hover:bg-[#f0c417] text-[#060606] text-[15px] font-extrabold inline-flex items-center justify-center gap-2 shadow-[0_0_12px_1px_#FEB91360] transition-transform active:scale-[0.98] cursor-pointer whitespace-nowrap"
                   >
-                    <Plus className="w-4 h-4" />
+                    <span>Buy Now</span>
                   </button>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => onAddToCart(product, activeVariant?.id, quantity)}
-                  className="button-primary flex-1 !py-3.5"
-                >
-                  Add to Bag · {formatINR(unitPrice * quantity)}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onBuyNow(product, activeVariant?.id, quantity)}
-                  className="h-[48px] px-7 rounded-full bg-[#feb913] hover:bg-[#f0c417] text-[#060606] text-[15px] font-extrabold inline-flex items-center justify-center gap-2 shadow-[0_0_12px_1px_#FEB91360] transition-transform active:scale-[0.98] cursor-pointer whitespace-nowrap"
-                >
-                  <span>Buy Now</span>
-                </button>
-              </div>
+              )}
 
               {/* Delivery PIN Code Checker */}
               <div className="pt-5 border-t border-[#1a1a1a]/10 mb-5">

@@ -319,7 +319,7 @@ export function getCatalogSignature(posts: Product[]): string {
     const variantSig = p.variants
       .map((v) => `${v.id}:${v.label}:${v.priceDelta}`)
       .join(',');
-    const token = `${p.id}|${p.price}|${p.compareAtPrice ?? ''}|${variantSig};`;
+    const token = `${p.id}|${p.status}|${p.price}|${p.compareAtPrice ?? ''}|${variantSig};`;
     for (let j = 0; j < token.length; j++) {
       hash ^= token.charCodeAt(j);
       hash = Math.imul(hash, 16777619);

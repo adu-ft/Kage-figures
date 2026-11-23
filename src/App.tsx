@@ -183,9 +183,14 @@ export default function App() {
       ? initialViewState.visibleDesktopCount
       : 10,
   );
-  const [cartItems, setCartItems] = useState<CartItem[]>(() =>
-    loadStoredCart<CartItem>(),
-  );
+  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
+    const soldOutIds = new Set(
+      PRODUCTS.filter((p) => p.status === 'Sold Out').map((p) => p.id),
+    );
+    return loadStoredCart<CartItem>().filter(
+      (item) => !soldOutIds.has(item.product.id),
+    );
+  });
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -574,6 +579,10 @@ export default function App() {
     variantId?: string,
     quantity = 1,
   ) => {
+    if (product.status === 'Sold Out') {
+      showToast(`${product.title} is currently sold out`);
+      return;
+    }
     const resolvedVariant =
       product.variants.find((v) => v.id === variantId) || product.variants[0];
     const vId = resolvedVariant?.id || 'std';
@@ -615,6 +624,10 @@ export default function App() {
     variantId?: string,
     quantity = 1,
   ) => {
+    if (product.status === 'Sold Out') {
+      showToast(`${product.title} is currently sold out`);
+      return;
+    }
     handleAddToCart(product, variantId, quantity);
     setCartOpen(true);
   };
@@ -642,6 +655,10 @@ export default function App() {
     variantId: string | undefined,
     delta: number,
   ) => {
+    if (product.status === 'Sold Out' && delta > 0) {
+      showToast(`${product.title} is currently sold out`);
+      return;
+    }
     const resolvedVariant =
       product.variants.find((v) => v.id === variantId) || product.variants[0];
     const vId = resolvedVariant?.id || 'std';

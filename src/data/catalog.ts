@@ -67,7 +67,7 @@ export interface Product {
   editionSize: string;
   price: number;
   compareAtPrice?: number;
-  status: 'In Stock' | 'Pre-Order' | 'On Sale' | 'Limited';
+  status: 'In Stock' | 'Pre-Order' | 'On Sale' | 'Limited' | 'Sold Out';
   sectionGroup: 'featured' | 'sale' | 'vault';
   imageUrl: string;
   fallbackUrl: string;
@@ -229,6 +229,7 @@ interface RawCatalogEntry {
   studio?: string;
   scale?: string;
   dimensions?: string;
+  soldOut?: boolean;
 }
 
 const CATALOG_ENTRIES: RawCatalogEntry[] = [
@@ -307,7 +308,7 @@ const CATALOG_ENTRIES: RawCatalogEntry[] = [
   { title: 'Demon Slayer Dual Nichirin Sword Keychain', price: 109, category: 'Anime Keychains', scale: 'Alloy Mini Blade', dimensions: '16cm · Scabbard Ring' },
   { title: 'One Piece Gold Katana Sword Keychain', price: 109, category: 'Anime Keychains', scale: 'Alloy Mini Blade', dimensions: '15cm · Split Ring' },
   { title: 'Trasped Mini RC Car 1:64 Alloy Model (Red)', price: 1199, category: 'Cars Figures', studio: 'Trasped', scale: '1:64 Alloy RC', dimensions: 'App & Remote · USB-C' },
-  { title: 'Monkey D. Luffy Classic Red Vest Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base' },
+  { title: 'Monkey D. Luffy Classic Red Vest Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base', soldOut: true },
 
   // 55..59
   { title: 'Son Goku Super Saiyan Blue Action Figure', price: 199, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base' },
@@ -325,13 +326,13 @@ const CATALOG_ENTRIES: RawCatalogEntry[] = [
 
   // 65..69
   { title: 'Agatsuma Zenitsu Chibi Fridge Magnet', price: 199, category: 'Anime Keychains', scale: 'Acrylic Magnet', dimensions: '8cm · Gloss Print' },
-  { title: 'Monkey D. Luffy Straw Hat Captain Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base' },
-  { title: 'Minato Namikaze Fourth Hokage Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base' },
+  { title: 'Monkey D. Luffy Straw Hat Captain Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base', soldOut: true },
+  { title: 'Minato Namikaze Fourth Hokage Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base', soldOut: true },
   { title: 'Zenitsu Flame Sword Collector Notebook', price: 199, category: 'Manga Frame', studio: 'InkFrame Studio', scale: 'A5 Hardcover', dimensions: '21×15cm · Gloss Print' },
   { title: 'Gaara of the Sand Collectible Action Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base' },
 
   // 70..74
-  { title: 'Kakashi Hatake Leaf Vest Action Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base' },
+  { title: 'Kakashi Hatake Leaf Vest Action Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base', soldOut: true },
   { title: 'Deidara Akatsuki Cloak Action Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base' },
   { title: 'Uchiha Sasuke Collector Action Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base' },
   { title: 'Naruto Uzumaki Hokage Cape Action Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base' },
@@ -348,11 +349,11 @@ const CATALOG_ENTRIES: RawCatalogEntry[] = [
   { title: 'Monkey D. Luffy Gear 5 Standing Figure', price: 499, category: 'Anime Action Figures', scale: '21cm PVC', dimensions: 'H 21cm · Lightning Effect' },
   { title: 'Monkey D. Luffy Gear 5 Mid-Air Kick Figure', price: 249, category: 'Anime Action Figures', scale: '16cm PVC', dimensions: 'H 16cm · Display Stand' },
   { title: 'Akatsuki & Sharingan Anime Rings Box Set', price: 499, category: 'Anime Keychains', scale: 'Collector Ring Set', dimensions: '10 Rings + Necklace Chain' },
-  { title: 'Demon Slayer Kimetsu no Yaiba Manga Vol. 1', price: 299, category: 'Manga Frame', studio: 'Shonen Print', scale: 'Paperback Manga', dimensions: 'Original Manga Volume 1' },
+  { title: 'Demon Slayer Kimetsu no Yaiba Manga Vol. 1', price: 299, category: 'Manga Frame', studio: 'Shonen Print', scale: 'Paperback Manga', dimensions: 'Original Manga Volume 1', soldOut: true },
   { title: 'Berserk Dark Knight Collector Statue', price: 1499, category: 'Anime Action Figures', studio: 'Kage Studio', scale: '28cm Collector', dimensions: 'H 28cm · Stone Base' },
 
   // 85..89
-  { title: 'Uchiha Sasuke Chidori 24cm Premium Figure', price: 999, category: 'Anime Action Figures', studio: 'Kage Studio', scale: '24cm PVC', dimensions: 'H 24cm · Chakra Base' },
+  { title: 'Uchiha Sasuke Chidori 24cm Premium Figure', price: 999, category: 'Anime Action Figures', studio: 'Kage Studio', scale: '24cm PVC', dimensions: 'H 24cm · Chakra Base', soldOut: true },
   { title: 'Kyojuro Rengoku Flame Hashira Figure', price: 649, category: 'Anime Action Figures', scale: '20cm PVC', dimensions: 'H 20cm · Flame Effect' },
   { title: 'Princess Shirahoshi One Piece Figure', price: 999, category: 'Anime Action Figures', studio: 'Banpresto', scale: '23cm PVC', dimensions: 'H 23cm · Coral Base' },
   { title: 'Megumi Fushiguro Jujutsu Kaisen Figure', price: 999, category: 'Anime Action Figures', studio: 'Bandai Tamashii', scale: '22cm PVC', dimensions: 'H 22cm · Battle Stance' },
@@ -364,7 +365,7 @@ const CATALOG_ENTRIES: RawCatalogEntry[] = [
   { title: 'Zenitsu Thunderclap White Manga Frame', price: 499, category: 'Manga Frame', studio: 'Kage Gallery', scale: 'Thick Shadowbox', dimensions: '25×20cm · White Frame' },
   { title: 'Rem Celestial Vivi Swimsuit Ver. Figure', price: 699, category: 'Anime Action Figures', studio: 'Banpresto', scale: '20cm PVC', dimensions: 'H 20cm · Beach Base' },
   { title: 'Muzan Kibutsuji Demon Form Action Figure', price: 999, category: 'Anime Action Figures', studio: 'Kage Studio', scale: '25cm PVC', dimensions: 'H 25cm · Blood Whip Base' },
-  { title: 'Tanjiro Kamado Water Breathing Action Figure', price: 749, category: 'Anime Action Figures', scale: '22cm PVC', dimensions: 'H 22cm · Water Dragon FX' },
+  { title: 'Tanjiro Kamado Water Breathing Action Figure', price: 749, category: 'Anime Action Figures', scale: '22cm PVC', dimensions: 'H 22cm · Water Dragon FX', soldOut: true },
 
   // 96..115 (On Sale showcase)
   { title: 'Tanjiro Kamado Water Dragon Action Figure', price: 749, category: 'Anime Action Figures', scale: '22cm PVC', dimensions: 'H 22cm · Water Spiral' },
@@ -372,34 +373,34 @@ const CATALOG_ENTRIES: RawCatalogEntry[] = [
   { title: 'Sanemi Shinazugawa Katana (Without Light)', price: 1499, category: 'Katana', studio: 'Kyoto Armory', scale: '104cm Full Size', dimensions: '104cm · Black Scabbard' },
   { title: 'Sanemi Shinazugawa Green LED Light Katana', price: 1999, category: 'Katana', studio: 'Kyoto Armory', scale: '104cm LED Katana', dimensions: '104cm · Glowing Blade' },
   { title: 'One Piece Grand Hourglass Pirate Edition', price: 499, category: 'Anime Action Figures', studio: 'Kage Craft', scale: 'Desk Diorama', dimensions: 'H 16cm · Thousand Sunny' },
-  { title: 'Kento Nanami Jujutsu Kaisen Chibi Figure', price: 349, category: 'Anime Action Figures', scale: '12cm PVC', dimensions: 'H 12cm · Scenic Stand' },
-  { title: 'Satoru Gojo Chibi Purple Technique Figure', price: 349, category: 'Anime Action Figures', scale: '12cm PVC', dimensions: 'H 12cm · Purple Aura' },
-  { title: 'Ryomen Sukuna Malevolent Throne Figure', price: 349, category: 'Anime Action Figures', scale: '13cm PVC', dimensions: 'H 13cm · Skull Throne' },
-  { title: 'Suguru Geto Jujutsu Kaisen Chibi Figure', price: 249, category: 'Anime Action Figures', scale: '11cm PVC', dimensions: 'H 11cm · Round Base' },
-  { title: 'Megumi Fushiguro Divine Canine Figure', price: 349, category: 'Anime Action Figures', scale: '13cm PVC', dimensions: 'H 13cm · Wolf Base' },
-  { title: 'Yuji Itadori Black Flash Unleashed Figure', price: 349, category: 'Anime Action Figures', scale: '13cm PVC', dimensions: 'H 13cm · Red FX' },
-  { title: 'Megumi Fushiguro with Divine Wolf Figure', price: 249, category: 'Anime Action Figures', scale: '12cm PVC', dimensions: 'H 12cm · Blue Aura Base' },
-  { title: 'Nobara Kugisaki Nail Strike Action Figure', price: 349, category: 'Anime Action Figures', scale: '13cm PVC', dimensions: 'H 13cm · Dynamic Stand' },
+  { title: 'Kento Nanami Jujutsu Kaisen Chibi Figure', price: 349, category: 'Anime Action Figures', scale: '12cm PVC', dimensions: 'H 12cm · Scenic Stand', soldOut: true },
+  { title: 'Satoru Gojo Chibi Purple Technique Figure', price: 349, category: 'Anime Action Figures', scale: '12cm PVC', dimensions: 'H 12cm · Purple Aura', soldOut: true },
+  { title: 'Ryomen Sukuna Malevolent Throne Figure', price: 349, category: 'Anime Action Figures', scale: '13cm PVC', dimensions: 'H 13cm · Skull Throne', soldOut: true },
+  { title: 'Suguru Geto Jujutsu Kaisen Chibi Figure', price: 249, category: 'Anime Action Figures', scale: '11cm PVC', dimensions: 'H 11cm · Round Base', soldOut: true },
+  { title: 'Megumi Fushiguro Divine Canine Figure', price: 349, category: 'Anime Action Figures', scale: '13cm PVC', dimensions: 'H 13cm · Wolf Base', soldOut: true },
+  { title: 'Yuji Itadori Black Flash Unleashed Figure', price: 349, category: 'Anime Action Figures', scale: '13cm PVC', dimensions: 'H 13cm · Red FX', soldOut: true },
+  { title: 'Megumi Fushiguro with Divine Wolf Figure', price: 249, category: 'Anime Action Figures', scale: '12cm PVC', dimensions: 'H 12cm · Blue Aura Base', soldOut: true },
+  { title: 'Nobara Kugisaki Nail Strike Action Figure', price: 349, category: 'Anime Action Figures', scale: '13cm PVC', dimensions: 'H 13cm · Dynamic Stand', soldOut: true },
   { title: 'Satoru Gojo Blindfold Chibi Figure', price: 249, category: 'Anime Action Figures', scale: '11cm PVC', dimensions: 'H 11cm · Display Stand' },
   { title: 'Yuji Itadori Crimson Scroll Edition Figure', price: 249, category: 'Anime Action Figures', scale: '11cm PVC', dimensions: 'H 11cm · Display Stand' },
   { title: 'Nobara Kugisaki Hammer Pose Chibi Figure', price: 249, category: 'Anime Action Figures', scale: '11cm PVC', dimensions: 'H 11cm · Display Stand' },
   { title: 'Son Goku Ultra Instinct Sign Action Figure', price: 199, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base' },
   { title: 'Futuristic Cyber LED Spark Katana', price: 999, category: 'Katana', studio: 'Kage Forge', scale: '80cm LED Blade', dimensions: 'RGB Blade · Smoke & Spark' },
   { title: 'Monkey D. Luffy Wano Kuni Ver. Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Kimono Pose' },
-  { title: 'Monkey D. Luffy Future King Action Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base' },
+  { title: 'Monkey D. Luffy Future King Action Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base', soldOut: true },
 
   // 116..137 (Collector's Vault)
   { title: 'Monkey D. Luffy Straw Hat Pirate Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Harbour Base' },
-  { title: 'One Piece Luffy Blue Waist Sash Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base' },
-  { title: 'Monkey D. Luffy Red Coat Captain Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base' },
+  { title: 'One Piece Luffy Blue Waist Sash Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base', soldOut: true },
+  { title: 'Monkey D. Luffy Red Coat Captain Figure', price: 299, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base', soldOut: true },
   { title: 'Son Goku Super Saiyan Blue Chibi Figure', price: 249, category: 'Anime Action Figures', scale: '12cm PVC', dimensions: 'H 12cm · Display Stand' },
-  { title: 'Monkey D. Luffy Gear 5 Cloud Base Figure', price: 499, category: 'Anime Action Figures', scale: '19cm PVC', dimensions: 'H 19cm · Cloud Base' },
+  { title: 'Monkey D. Luffy Gear 5 Cloud Base Figure', price: 499, category: 'Anime Action Figures', scale: '19cm PVC', dimensions: 'H 19cm · Cloud Base', soldOut: true },
   { title: 'Portgas D. Ace Fire Fist Action Figure', price: 599, category: 'Anime Action Figures', scale: '21cm PVC', dimensions: 'H 21cm · Flame Effects' },
   { title: 'Vegeta Ultra Ego God of Pride Figure', price: 199, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base' },
   { title: 'Tanjiro Kamado Water Breathing Slash Figure', price: 599, category: 'Anime Action Figures', scale: '21cm PVC', dimensions: 'H 21cm · Wave Base' },
   { title: 'Son Goku Super Saiyan Classic Figure', price: 199, category: 'Anime Action Figures', scale: '18cm PVC', dimensions: 'H 18cm · Display Base' },
-  { title: 'Son Goku Kaio-Ken Muscle Aura Figure', price: 648, category: 'Anime Action Figures', scale: '22cm PVC', dimensions: 'H 22cm · Crimson Aura' },
-  { title: 'Nezuko Kamado Demon Form Action Figure', price: 499, category: 'Anime Action Figures', scale: '20cm PVC', dimensions: 'H 20cm · Horn & Markings' },
+  { title: 'Son Goku Kaio-Ken Muscle Aura Figure', price: 648, category: 'Anime Action Figures', scale: '22cm PVC', dimensions: 'H 22cm · Crimson Aura', soldOut: true },
+  { title: 'Nezuko Kamado Demon Form Action Figure', price: 499, category: 'Anime Action Figures', scale: '20cm PVC', dimensions: 'H 20cm · Horn & Markings', soldOut: true },
   { title: 'Mitsuri Kanroji Love Hashira Action Figure', price: 499, category: 'Anime Action Figures', scale: '20cm PVC', dimensions: 'H 20cm · Whip Katana' },
   { title: 'Son Goku Base Form Martial Action Figure', price: 499, category: 'Anime Action Figures', scale: '20cm PVC', dimensions: 'H 20cm · Display Base' },
   { title: 'Tanjiro Kamado Water Dragon Surge Figure', price: 699, category: 'Anime Action Figures', scale: '22cm PVC', dimensions: 'H 22cm · Translucent Dragon' },
@@ -445,6 +446,11 @@ export const PRODUCTS: Product[] = INSTAGRAM_CATALOGUE_URLS.map(
       status = 'Pre-Order';
     } else if (index % 5 === 0) {
       status = 'Limited';
+    }
+
+    if (entry?.soldOut) {
+      status = 'Sold Out';
+      compareAtPrice = undefined;
     }
 
     const fallbackUrl = FALLBACK_BY_CATEGORY[category];

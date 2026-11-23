@@ -23,8 +23,11 @@ export function ProductCard({
   onUpdateQuantity,
   layout = 'carousel',
 }: ProductCardProps) {
+  const isSoldOut = product.status === 'Sold Out';
   const discountPct =
-    product.compareAtPrice && product.compareAtPrice > product.price
+    !isSoldOut &&
+    product.compareAtPrice &&
+    product.compareAtPrice > product.price
       ? Math.round(
           ((product.compareAtPrice - product.price) / product.compareAtPrice) *
             100,
@@ -46,19 +49,32 @@ export function ProductCard({
           type="button"
           onClick={() => onQuickView(product)}
           className="w-full h-full block cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#1a1a1a]"
-          aria-label={`View details for ${product.title}`}
+          aria-label={`View details for ${product.title}${isSoldOut ? ' (Sold Out)' : ''}`}
         >
           <CollectibleImage
             src={product.imageUrl}
             fallbackSrc={product.fallbackUrl}
             alt={`${product.title} (${product.code})`}
             loading="lazy"
-            className="w-full h-full object-cover object-center transition-transform duration-300 ease-out group-hover:scale-[1.04]"
+            className={`w-full h-full object-cover object-center transition-transform duration-300 ease-out group-hover:scale-[1.04] ${
+              isSoldOut ? 'grayscale-[45%] opacity-75' : ''
+            }`}
           />
+          {isSoldOut && (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 bg-black/15"
+            />
+          )}
         </button>
 
         {/* Single Top Tag when applicable */}
-        {product.status === 'On Sale' && discountPct ? (
+        {isSoldOut ? (
+          <span className="px-2.5 py-1 rounded-full bg-[#1a1a1a]/92 text-white border border-white/15 text-[11px] font-extrabold uppercase tracking-[0.06em] shadow-md absolute top-2.5 left-2.5 z-10 inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#f83a3a]" />
+            <span>Sold Out</span>
+          </span>
+        ) : product.status === 'On Sale' && discountPct ? (
           <span className="badge-pill !px-2.5 !py-1 !text-[11px] absolute top-2.5 left-2.5 z-10">
             Save {discountPct}%
           </span>
@@ -133,7 +149,11 @@ export function ProductCard({
             onClick={() => onQuickView(product)}
             className="text-left cursor-pointer hover:text-[#f83a3a] transition-colors"
           >
-            <h3 className="text-[13.5px] sm:text-[15px] leading-[1.3] font-bold text-[#1a1a1a] m-0 line-clamp-2">
+            <h3
+              className={`text-[13.5px] sm:text-[15px] leading-[1.3] font-bold m-0 line-clamp-2 ${
+                isSoldOut ? 'text-[#1a1a1a]/75' : 'text-[#1a1a1a]'
+              }`}
+            >
               {product.title}
             </h3>
           </button>
@@ -143,19 +163,36 @@ export function ProductCard({
           <div className="flex items-baseline gap-1 sm:gap-1.5 tabular-nums min-w-0">
             <span
               className={`text-[14px] sm:text-[16px] font-bold truncate ${
-                product.compareAtPrice ? 'text-[#f83a3a]' : 'text-[#1a1a1a]'
+                isSoldOut
+                  ? 'text-[#1a1a1a]/50'
+                  : product.compareAtPrice
+                    ? 'text-[#f83a3a]'
+                    : 'text-[#1a1a1a]'
               }`}
             >
               {formatINR(product.price)}
             </span>
-            {product.compareAtPrice && (
+            {!isSoldOut && product.compareAtPrice && (
               <span className="text-[10.5px] sm:text-[12px] font-medium text-[#1a1a1ab3] line-through shrink-0">
                 {formatINR(product.compareAtPrice)}
               </span>
             )}
           </div>
 
-          {cartQuantity > 0 ? (
+          {isSoldOut ? (
+            <button
+              type="button"
+              disabled
+              aria-label={`${product.title} is sold out`}
+              className={`${
+                layout === 'grid'
+                  ? 'h-7 sm:h-8 px-2.5 sm:px-3 text-[11px] sm:text-[11.5px]'
+                  : 'h-8 px-3 text-[11.5px]'
+              } rounded-full bg-[#1a1a1a]/[0.08] text-[#1a1a1a]/55 font-bold inline-flex items-center justify-center cursor-not-allowed whitespace-nowrap shrink-0`}
+            >
+              Sold Out
+            </button>
+          ) : cartQuantity > 0 ? (
             <div
               role="group"
               aria-label={`Quantity in bag for ${product.title}`}

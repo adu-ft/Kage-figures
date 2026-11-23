@@ -802,7 +802,13 @@ export function ProductModal({
             alt={product.title}
             className="w-full h-full object-cover"
           />
-          <span className="badge-pill absolute top-4 left-4">
+          <span
+            className={
+              product.status === 'Sold Out'
+                ? 'px-3 py-1 rounded-full bg-[#1a1a1a]/92 text-white text-[12px] font-extrabold uppercase tracking-[0.06em] absolute top-4 left-4'
+                : 'badge-pill absolute top-4 left-4'
+            }
+          >
             {product.status}
           </span>
         </div>
@@ -884,44 +890,54 @@ export function ProductModal({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="inline-flex items-center border border-[#1a1a1a]/15 rounded-full bg-[#f0f0f0] h-12 px-2">
-              <button
-                type="button"
-                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                aria-label="Decrease quantity"
-                className="w-8 h-8 inline-flex items-center justify-center cursor-pointer"
-              >
-                <Minus className="w-4 h-4" />
-              </button>
-              <span className="w-8 text-center font-bold tabular-nums">
-                {quantity}
-              </span>
-              <button
-                type="button"
-                onClick={() => setQuantity((q) => q + 1)}
-                aria-label="Increase quantity"
-                className="w-8 h-8 inline-flex items-center justify-center cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
-
+          {product.status === 'Sold Out' ? (
             <button
               type="button"
-              onClick={() => {
-                onAddToCart(
-                  product,
-                  selectedVariant?.id || 'std',
-                  quantity,
-                );
-                onClose();
-              }}
-              className="button-primary flex-1"
+              disabled
+              className="h-12 w-full rounded-full bg-[#1a1a1a]/10 text-[#1a1a1a]/50 font-extrabold cursor-not-allowed"
             >
-              Add to Bag · {formatINR(finalPrice * quantity)}
+              Sold Out
             </button>
-          </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="inline-flex items-center border border-[#1a1a1a]/15 rounded-full bg-[#f0f0f0] h-12 px-2">
+                <button
+                  type="button"
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  aria-label="Decrease quantity"
+                  className="w-8 h-8 inline-flex items-center justify-center cursor-pointer"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <span className="w-8 text-center font-bold tabular-nums">
+                  {quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity((q) => q + 1)}
+                  aria-label="Increase quantity"
+                  className="w-8 h-8 inline-flex items-center justify-center cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onAddToCart(
+                    product,
+                    selectedVariant?.id || 'std',
+                    quantity,
+                  );
+                  onClose();
+                }}
+                className="button-primary flex-1"
+              >
+                Add to Bag · {formatINR(finalPrice * quantity)}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1085,37 +1101,53 @@ export function SearchModal({
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {matches.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    onSelectProduct(item);
-                    onClose();
-                  }}
-                  className="flex items-center gap-3.5 p-2.5 rounded-[8px] bg-[#f0f0f0] hover:bg-[#feb913]/25 transition-colors text-left cursor-pointer"
-                >
-                  <div className="w-16 h-16 rounded-[6px] overflow-hidden bg-white shrink-0">
-                    <CollectibleImage
-                      src={item.imageUrl}
-                      fallbackSrc={item.fallbackUrl}
-                      alt={item.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[11px] font-bold uppercase text-[#1a1a1ab3]">
-                      {item.studio} · {item.scale}
+              {matches.map((item) => {
+                const isSoldOut = item.status === 'Sold Out';
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      onSelectProduct(item);
+                      onClose();
+                    }}
+                    className="flex items-center gap-3.5 p-2.5 rounded-[8px] bg-[#f0f0f0] hover:bg-[#feb913]/25 transition-colors text-left cursor-pointer"
+                  >
+                    <div className="w-16 h-16 rounded-[6px] overflow-hidden bg-white shrink-0">
+                      <CollectibleImage
+                        src={item.imageUrl}
+                        fallbackSrc={item.fallbackUrl}
+                        alt={item.title}
+                        className={`w-full h-full object-cover ${
+                          isSoldOut ? 'grayscale-[45%] opacity-75' : ''
+                        }`}
+                      />
                     </div>
-                    <div className="text-[14px] font-bold text-[#1a1a1a] truncate">
-                      {item.title}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] font-bold uppercase text-[#1a1a1ab3] truncate">
+                        {item.studio} · {item.scale}
+                      </div>
+                      <div className="text-[14px] font-bold text-[#1a1a1a] truncate">
+                        {item.title}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span
+                          className={`text-[14px] font-bold tabular-nums ${
+                            isSoldOut ? 'text-[#1a1a1a]/50' : 'text-[#f83a3a]'
+                          }`}
+                        >
+                          {formatINR(item.price)}
+                        </span>
+                        {isSoldOut && (
+                          <span className="px-2 py-0.5 rounded-full bg-[#1a1a1a] text-white text-[10px] font-extrabold uppercase tracking-[0.05em]">
+                            Sold Out
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-[14px] font-bold text-[#f83a3a] tabular-nums">
-                      {formatINR(item.price)}
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
