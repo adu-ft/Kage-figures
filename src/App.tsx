@@ -35,6 +35,7 @@ import { PriceRangeFilter } from './components/PriceRangeFilter';
 import { ProductCard } from './components/ProductCard';
 import { ProductCardSkeleton } from './components/ProductCardSkeleton';
 import { ProductDetailPage } from './components/ProductDetailPage';
+import { InstagramPostsPage } from './components/InstagramPostsPage';
 import {
   CartDrawer,
   SearchModal,
@@ -199,6 +200,8 @@ export default function App() {
   );
   const [browsePageOpen, setBrowsePageOpen] = useState<boolean>(false);
   const [adminPageOpen, setAdminPageOpen] = useState<boolean>(false);
+  const [instagramPostsPageOpen, setInstagramPostsPageOpen] =
+    useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [verifiedPincode, setVerifiedPincode] =
     useState<PincodeDetails | null>(() => getLastVerifiedPincode());
@@ -211,8 +214,10 @@ export default function App() {
   const collectionScrollRef = useRef<HTMLDivElement>(null);
   const savedScrollYRef = useRef<number>(0);
   const catalogScrollYRef = useRef<number>(0);
+  const instagramScrollYRef = useRef<number>(0);
   const returnToCatalogRef = useRef<boolean>(false);
   const returnToAdminRef = useRef<boolean>(false);
+  const returnToInstagramRef = useRef<boolean>(false);
   const prevSubpageOpenRef = useRef<boolean>(false);
   const prevHashRef = useRef<string>(
     typeof window !== 'undefined' ? window.location.hash : '',
@@ -269,13 +274,28 @@ export default function App() {
           savedScrollYRef.current = window.scrollY;
         }
         const id = decodeURIComponent(hash.slice('#product-'.length));
+        const canonical = PRODUCTS.find((p) => p.id === id);
         const source = catalogProducts.length > 0 ? catalogProducts : PRODUCTS;
-        const found = source.find((p) => p.id === id) || null;
-        prevSubpageOpenRef.current = Boolean(found);
+        const found = source.find((p) => p.id === id) || canonical || null;
+        const productToSelect: Product | null = found
+          ? {
+              ...found,
+              images:
+                canonical?.images && canonical.images.length > 0
+                  ? canonical.images
+                  : found.images && found.images.length > 0
+                    ? found.images
+                    : [found.imageUrl],
+              slideUrls: canonical?.slideUrls || found.slideUrls,
+              imageUrl: canonical?.imageUrl || found.imageUrl,
+            }
+          : null;
+        prevSubpageOpenRef.current = Boolean(productToSelect);
         setAdminPageOpen(false);
         setBrowsePageOpen(false);
+        setInstagramPostsPageOpen(false);
         setActiveLegalPage(null);
-        setSelectedProduct(found);
+        setSelectedProduct(productToSelect);
       } else if (hash === '#vault-admin' || hash === '#kage-admin') {
         if (!prevSubpageOpenRef.current) {
           savedScrollYRef.current = window.scrollY;
@@ -283,7 +303,9 @@ export default function App() {
         prevSubpageOpenRef.current = true;
         returnToCatalogRef.current = false;
         returnToAdminRef.current = false;
+        returnToInstagramRef.current = false;
         setBrowsePageOpen(false);
+        setInstagramPostsPageOpen(false);
         setSelectedProduct(null);
         setActiveLegalPage(null);
         setAdminPageOpen(true);
@@ -296,7 +318,9 @@ export default function App() {
         }
         prevSubpageOpenRef.current = true;
         returnToCatalogRef.current = true;
+        returnToInstagramRef.current = false;
         setAdminPageOpen(false);
+        setInstagramPostsPageOpen(false);
         setSelectedProduct(null);
         setActiveLegalPage(null);
         setBrowsePageOpen(true);
@@ -306,14 +330,42 @@ export default function App() {
             behavior: 'auto',
           });
         });
+      } else if (
+        hash === '#instagram-posts' ||
+        hash === '#instagram-index' ||
+        hash === '#ig-posts'
+      ) {
+        const returningFromProduct =
+          returnToInstagramRef.current && prevHash.startsWith('#product-');
+        if (!prevSubpageOpenRef.current) {
+          savedScrollYRef.current = window.scrollY;
+        }
+        prevSubpageOpenRef.current = true;
+        returnToCatalogRef.current = false;
+        returnToAdminRef.current = false;
+        returnToInstagramRef.current = true;
+        setBrowsePageOpen(false);
+        setAdminPageOpen(false);
+        setSelectedProduct(null);
+        setActiveLegalPage(null);
+        setInstagramPostsPageOpen(true);
+        requestAnimationFrame(() => {
+          window.scrollTo({
+            top: returningFromProduct ? instagramScrollYRef.current : 0,
+            behavior: 'auto',
+          });
+        });
       } else if (LEGAL_HASH_MAP[hash]) {
         if (!prevSubpageOpenRef.current) {
           savedScrollYRef.current = window.scrollY;
         }
         prevSubpageOpenRef.current = true;
         returnToCatalogRef.current = false;
+        returnToAdminRef.current = false;
+        returnToInstagramRef.current = false;
         setAdminPageOpen(false);
         setBrowsePageOpen(false);
+        setInstagramPostsPageOpen(false);
         setSelectedProduct(null);
         setActiveLegalPage(LEGAL_HASH_MAP[hash]);
         window.scrollTo({ top: 0, behavior: 'auto' });
@@ -321,8 +373,11 @@ export default function App() {
         const wasOpen = prevSubpageOpenRef.current;
         prevSubpageOpenRef.current = false;
         returnToCatalogRef.current = false;
+        returnToAdminRef.current = false;
+        returnToInstagramRef.current = false;
         setAdminPageOpen(false);
         setBrowsePageOpen(false);
+        setInstagramPostsPageOpen(false);
         setSelectedProduct(null);
         setActiveLegalPage(null);
         if (wasOpen) {
@@ -364,20 +419,41 @@ export default function App() {
     if (adminPageOpen) {
       returnToAdminRef.current = true;
       returnToCatalogRef.current = false;
+      returnToInstagramRef.current = false;
     } else if (browsePageOpen) {
       catalogScrollYRef.current = window.scrollY;
       returnToCatalogRef.current = true;
+      returnToAdminRef.current = false;
+      returnToInstagramRef.current = false;
+    } else if (instagramPostsPageOpen) {
+      instagramScrollYRef.current = window.scrollY;
+      returnToInstagramRef.current = true;
+      returnToCatalogRef.current = false;
       returnToAdminRef.current = false;
     } else if (!selectedProduct && !activeLegalPage) {
       savedScrollYRef.current = window.scrollY;
       returnToCatalogRef.current = false;
       returnToAdminRef.current = false;
+      returnToInstagramRef.current = false;
     }
     prevSubpageOpenRef.current = true;
     setAdminPageOpen(false);
     setBrowsePageOpen(false);
+    setInstagramPostsPageOpen(false);
     setActiveLegalPage(null);
-    setSelectedProduct(product);
+    const canonical = PRODUCTS.find((p) => p.id === product.id);
+    const enrichedProduct: Product = {
+      ...product,
+      images:
+        canonical?.images && canonical.images.length > 0
+          ? canonical.images
+          : product.images && product.images.length > 0
+            ? product.images
+            : [product.imageUrl],
+      slideUrls: canonical?.slideUrls || product.slideUrls,
+      imageUrl: canonical?.imageUrl || product.imageUrl,
+    };
+    setSelectedProduct(enrichedProduct);
     const targetHash = `#product-${encodeURIComponent(product.id)}`;
     prevHashRef.current = targetHash;
     if (window.location.hash !== targetHash) {
@@ -386,12 +462,20 @@ export default function App() {
   };
 
   const handleOpenCatalogBrowse = () => {
-    if (!selectedProduct && !activeLegalPage && !browsePageOpen && !adminPageOpen) {
+    if (
+      !selectedProduct &&
+      !activeLegalPage &&
+      !browsePageOpen &&
+      !adminPageOpen &&
+      !instagramPostsPageOpen
+    ) {
       savedScrollYRef.current = window.scrollY;
     }
     prevSubpageOpenRef.current = true;
     returnToCatalogRef.current = true;
+    returnToInstagramRef.current = false;
     setAdminPageOpen(false);
+    setInstagramPostsPageOpen(false);
     setSelectedProduct(null);
     setActiveLegalPage(null);
     setBrowsePageOpen(true);
@@ -402,14 +486,48 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'auto' });
   };
 
-  const handleOpenAdminPage = () => {
-    if (!selectedProduct && !activeLegalPage && !browsePageOpen && !adminPageOpen) {
+  const handleOpenInstagramPosts = () => {
+    if (
+      !selectedProduct &&
+      !activeLegalPage &&
+      !browsePageOpen &&
+      !adminPageOpen &&
+      !instagramPostsPageOpen
+    ) {
       savedScrollYRef.current = window.scrollY;
     }
     prevSubpageOpenRef.current = true;
     returnToCatalogRef.current = false;
     returnToAdminRef.current = false;
+    returnToInstagramRef.current = false;
     setBrowsePageOpen(false);
+    setAdminPageOpen(false);
+    setSelectedProduct(null);
+    setActiveLegalPage(null);
+    setInstagramPostsPageOpen(true);
+    prevHashRef.current = '#instagram-posts';
+    if (window.location.hash !== '#instagram-posts') {
+      window.history.pushState({ instagram: true }, '', '#instagram-posts');
+    }
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  };
+
+  const handleOpenAdminPage = () => {
+    if (
+      !selectedProduct &&
+      !activeLegalPage &&
+      !browsePageOpen &&
+      !adminPageOpen &&
+      !instagramPostsPageOpen
+    ) {
+      savedScrollYRef.current = window.scrollY;
+    }
+    prevSubpageOpenRef.current = true;
+    returnToCatalogRef.current = false;
+    returnToAdminRef.current = false;
+    returnToInstagramRef.current = false;
+    setBrowsePageOpen(false);
+    setInstagramPostsPageOpen(false);
     setSelectedProduct(null);
     setActiveLegalPage(null);
     setAdminPageOpen(true);
@@ -421,13 +539,21 @@ export default function App() {
   };
 
   const handleOpenLegalPage = (pageId: LegalPageId) => {
-    if (!selectedProduct && !activeLegalPage && !browsePageOpen && !adminPageOpen) {
+    if (
+      !selectedProduct &&
+      !activeLegalPage &&
+      !browsePageOpen &&
+      !adminPageOpen &&
+      !instagramPostsPageOpen
+    ) {
       savedScrollYRef.current = window.scrollY;
     }
     prevSubpageOpenRef.current = true;
     returnToCatalogRef.current = false;
+    returnToInstagramRef.current = false;
     setAdminPageOpen(false);
     setBrowsePageOpen(false);
+    setInstagramPostsPageOpen(false);
     setSelectedProduct(null);
     setActiveLegalPage(pageId);
     const targetHash = LEGAL_ID_TO_HASH[pageId];
@@ -439,16 +565,28 @@ export default function App() {
   };
 
   const handleNavigate = (sectionId: string, filterCategory?: string) => {
+    if (
+      sectionId === '#instagram-posts' ||
+      sectionId === '#instagram-index' ||
+      sectionId === '#ig-posts'
+    ) {
+      handleOpenInstagramPosts();
+      return;
+    }
     const wasOnSubpage =
       selectedProduct !== null ||
       activeLegalPage !== null ||
       browsePageOpen ||
-      adminPageOpen;
+      adminPageOpen ||
+      instagramPostsPageOpen;
     if (wasOnSubpage) {
       prevSubpageOpenRef.current = false;
       returnToCatalogRef.current = false;
+      returnToAdminRef.current = false;
+      returnToInstagramRef.current = false;
       setAdminPageOpen(false);
       setBrowsePageOpen(false);
+      setInstagramPostsPageOpen(false);
       setSelectedProduct(null);
       setActiveLegalPage(null);
       if (
@@ -456,6 +594,9 @@ export default function App() {
         window.location.hash === '#catalogue' ||
         window.location.hash === '#vault-admin' ||
         window.location.hash === '#kage-admin' ||
+        window.location.hash === '#instagram-posts' ||
+        window.location.hash === '#instagram-index' ||
+        window.location.hash === '#ig-posts' ||
         LEGAL_HASH_MAP[window.location.hash]
       ) {
         prevHashRef.current = '';
@@ -521,11 +662,26 @@ export default function App() {
       });
       return;
     }
+    if (selectedProduct && returnToInstagramRef.current) {
+      returnToInstagramRef.current = false;
+      setSelectedProduct(null);
+      setInstagramPostsPageOpen(true);
+      prevHashRef.current = '#instagram-posts';
+      if (window.location.hash !== '#instagram-posts') {
+        window.history.replaceState({ instagram: true }, '', '#instagram-posts');
+      }
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: instagramScrollYRef.current, behavior: 'auto' });
+      });
+      return;
+    }
     prevSubpageOpenRef.current = false;
     returnToCatalogRef.current = false;
     returnToAdminRef.current = false;
+    returnToInstagramRef.current = false;
     setAdminPageOpen(false);
     setBrowsePageOpen(false);
+    setInstagramPostsPageOpen(false);
     setSelectedProduct(null);
     setActiveLegalPage(null);
     if (
@@ -533,6 +689,9 @@ export default function App() {
       window.location.hash === '#catalogue' ||
       window.location.hash === '#vault-admin' ||
       window.location.hash === '#kage-admin' ||
+      window.location.hash === '#instagram-posts' ||
+      window.location.hash === '#instagram-index' ||
+      window.location.hash === '#ig-posts' ||
       LEGAL_HASH_MAP[window.location.hash]
     ) {
       prevHashRef.current = '';
@@ -852,12 +1011,24 @@ export default function App() {
             />
           )}
 
+        {!selectedProduct &&
+          !activeLegalPage &&
+          !adminPageOpen &&
+          !browsePageOpen &&
+          instagramPostsPageOpen && (
+            <InstagramPostsPage
+              onBack={() => handleBackToCatalogue()}
+              onSelectProduct={handleOpenProduct}
+            />
+          )}
+
         <div
           className={
             selectedProduct ||
             activeLegalPage ||
             browsePageOpen ||
-            adminPageOpen
+            adminPageOpen ||
+            instagramPostsPageOpen
               ? 'hidden'
               : ''
           }
@@ -865,7 +1036,8 @@ export default function App() {
             selectedProduct ||
               activeLegalPage ||
               browsePageOpen ||
-              adminPageOpen,
+              adminPageOpen ||
+              instagramPostsPageOpen,
           )}
         >
           {/* 2. Slideshow Section */}
@@ -1246,6 +1418,14 @@ export default function App() {
                 >
                   Show All {filteredCatalogue.length}
                 </button>
+                <button
+                  type="button"
+                  onClick={handleOpenInstagramPosts}
+                  className="h-[50px] px-7 rounded-full border border-[#1a1a1a] bg-[#1a1a1a] text-[#feb913] hover:bg-[#f83a3a] hover:text-white hover:border-[#f83a3a] text-[15px] font-bold transition-all cursor-pointer flex items-center gap-2 shadow-sm"
+                >
+                  <span>Instagram Drops Index (135)</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
             )}
           </div>
@@ -1592,6 +1772,18 @@ export default function App() {
                 <ul className="space-y-2.5 text-[15px] font-medium">
                   <li>
                     <a
+                      href="#instagram-posts"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleOpenInstagramPosts();
+                      }}
+                      className="hover:text-[#f83a3a] flex items-center gap-1.5 text-[#f83a3a] font-bold"
+                    >
+                      <span>Instagram Drops Index (135)</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a
                       href="#featured-collection"
                       onClick={(e) => {
                         e.preventDefault();
@@ -1748,6 +1940,17 @@ export default function App() {
                 className="hover:text-[#f83a3a]"
               >
                 Returns
+              </a>
+              <span aria-hidden="true">·</span>
+              <a
+                href="#instagram-posts"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleOpenInstagramPosts();
+                }}
+                className="hover:text-[#f83a3a]"
+              >
+                IG Posts Index
               </a>
               <span aria-hidden="true">·</span>
               <a

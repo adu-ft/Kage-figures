@@ -1,7 +1,7 @@
 import type { Product } from '../data/catalog';
 
-const CACHE_VERSION = 'v1';
-const POSTS_STORAGE_KEY = 'kage_figures_ig_posts_v3';
+const CACHE_VERSION = 'v4';
+const POSTS_STORAGE_KEY = 'kage_figures_ig_posts_v6';
 const LOADED_URLS_KEY = `kage_figures_ig_loaded_urls_${CACHE_VERSION}`;
 const VIEW_STATE_KEY = `kage_figures_view_state_${CACHE_VERSION}`;
 const CART_STORAGE_KEY = `kage_figures_cart_${CACHE_VERSION}`;
@@ -319,7 +319,8 @@ export function getCatalogSignature(posts: Product[]): string {
     const variantSig = p.variants
       .map((v) => `${v.id}:${v.label}:${v.priceDelta}`)
       .join(',');
-    const token = `${p.id}|${p.status}|${p.price}|${p.compareAtPrice ?? ''}|${variantSig};`;
+    const imageSig = (p.images || []).join(',');
+    const token = `${p.id}|${p.status}|${p.price}|${p.compareAtPrice ?? ''}|${p.imageUrl}|${imageSig}|${variantSig};`;
     for (let j = 0; j < token.length; j++) {
       hash ^= token.charCodeAt(j);
       hash = Math.imul(hash, 16777619);
@@ -334,6 +335,11 @@ export function hydrateInstagramPosts(canonicalPosts: Product[]): Product[] {
   const signature = getCatalogSignature(canonicalPosts);
   if (!canUseStorage()) return canonicalPosts;
 
+  const canonicalMap = new Map<string, Product>();
+  for (const cp of canonicalPosts) {
+    canonicalMap.set(cp.id, cp);
+  }
+
   try {
     const raw = window.localStorage.getItem(POSTS_STORAGE_KEY);
     if (raw) {
@@ -345,7 +351,22 @@ export function hydrateInstagramPosts(canonicalPosts: Product[]): Product[] {
         Array.isArray(parsed.posts) &&
         parsed.posts.length === canonicalPosts.length
       ) {
-        return parsed.posts;
+        // Guarantee that fresh images and slideUrls from canonicalPosts are always merged
+        return parsed.posts.map((cached) => {
+          const canonical = canonicalMap.get(cached.id);
+          if (canonical) {
+            return {
+              ...cached,
+              images:
+                canonical.images && canonical.images.length > 0
+                  ? canonical.images
+                  : cached.images || [canonical.imageUrl],
+              slideUrls: canonical.slideUrls || cached.slideUrls,
+              imageUrl: canonical.imageUrl || cached.imageUrl,
+            };
+          }
+          return cached;
+        });
       }
     }
   } catch {

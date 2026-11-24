@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
+  ExternalLink,
+  Instagram,
   Loader2,
   MapPin,
   Minus,
@@ -15,9 +17,11 @@ import {
   CATALOG_MAX_PRICE,
   CATALOG_MIN_PRICE,
   Product,
+  PRODUCTS,
   formatINR,
 } from '../data/catalog';
 import { CollectibleImage } from './CollectibleImage';
+import { SwipeableImageGallery } from './SwipeableImageGallery';
 import { PriceRangeFilter } from './PriceRangeFilter';
 import {
   getLastVerifiedPincode,
@@ -783,6 +787,14 @@ export function ProductModal({
     product.price + (selectedVariant?.priceDelta || 0),
   );
 
+  const canonicalProduct = PRODUCTS.find((p) => p.id === product.id);
+  const displayImages =
+    product.images && product.images.length > 1
+      ? product.images
+      : canonicalProduct?.images && canonicalProduct.images.length > 0
+        ? canonicalProduct.images
+        : [product.imageUrl];
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
@@ -796,17 +808,17 @@ export function ProductModal({
       />
       <div className="relative z-10 w-full max-w-[920px] bg-white rounded-[12px] overflow-hidden shadow-2xl grid grid-cols-1 md:grid-cols-2 max-h-[90vh] overflow-y-auto">
         <div className="relative bg-[#f0f0f0] min-h-[300px] md:min-h-[460px]">
-          <CollectibleImage
-            src={product.imageUrl}
+          <SwipeableImageGallery
+            images={displayImages}
             fallbackSrc={product.fallbackUrl}
             alt={product.title}
-            className="w-full h-full object-cover"
+            aspectRatioClass="h-full min-h-[300px] md:min-h-[460px]"
           />
           <span
             className={
               product.status === 'Sold Out'
-                ? 'px-3 py-1 rounded-full bg-[#1a1a1a]/92 text-white text-[12px] font-extrabold uppercase tracking-[0.06em] absolute top-4 left-4'
-                : 'badge-pill absolute top-4 left-4'
+                ? 'px-3 py-1 rounded-full bg-[#1a1a1a]/92 text-white text-[12px] font-extrabold uppercase tracking-[0.06em] absolute top-4 left-4 z-10 pointer-events-none'
+                : 'badge-pill absolute top-4 left-4 z-10 pointer-events-none'
             }
           >
             {product.status}
@@ -857,9 +869,24 @@ export function ProductModal({
               </div>
               <div>
                 <span className="text-[#1a1a1ab3] block">Allocation</span>
-                <span className="font-bold text-[#1a1a1a]">
-                  {product.editionSize}
-                </span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-bold text-[#1a1a1a]">
+                    {product.editionSize}
+                  </span>
+                  {product.instagramUrl && (
+                    <a
+                      href={product.instagramUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#f83a3a] hover:underline inline-flex items-center gap-1 text-[11.5px] font-bold"
+                      title="View post on Instagram"
+                    >
+                      <Instagram className="w-3 h-3" />
+                      <span>IG Drop</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1108,7 +1135,8 @@ export function SearchModal({
                     key={item.id}
                     type="button"
                     onClick={() => {
-                      onSelectProduct(item);
+                      const canonical = PRODUCTS.find((p) => p.id === item.id) || item;
+                      onSelectProduct(canonical);
                       onClose();
                     }}
                     className="flex items-center gap-3.5 p-2.5 rounded-[8px] bg-[#f0f0f0] hover:bg-[#feb913]/25 transition-colors text-left cursor-pointer"

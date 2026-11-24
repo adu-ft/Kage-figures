@@ -10,6 +10,7 @@ import adminLoginHandler from './api/admin/login.js';
 import adminOrdersHandler from './api/admin/orders.js';
 import adminOrderByNumberHandler from './api/admin/orders/[orderNumber].js';
 import adminSubscribersHandler from './api/admin/subscribers.js';
+import { handleInstagramImage, handleInstagramSlides } from './api/ig-image.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,6 +52,8 @@ async function startServer() {
   app.all('/api/admin/orders', adaptHandler(adminOrdersHandler));
   app.all('/api/admin/orders/:orderNumber', adaptHandler(adminOrderByNumberHandler));
   app.all('/api/admin/subscribers', adaptHandler(adminSubscribersHandler));
+  app.get('/api/ig-image/:shortcode/:index?', handleInstagramImage);
+  app.get('/api/ig-slides/:shortcode', handleInstagramSlides);
 
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');

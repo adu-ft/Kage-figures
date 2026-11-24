@@ -6,3 +6,9 @@ coverage/
 *.log
 .env*
 !.env.example
+.aistudio/
+scripts/
+__pycache__/
+*.pdf
+*.png
+kagefigures_links.txt

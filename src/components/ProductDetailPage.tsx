@@ -5,7 +5,9 @@ import {
   BadgePercent,
   Check,
   ChevronRight,
+  ExternalLink,
   Heart,
+  Instagram,
   Loader2,
   MapPin,
   Minus,
@@ -20,6 +22,7 @@ import {
 import { PRODUCTS, type CategoryName, type Product, formatINR } from '../data/catalog';
 import { CollectibleImage } from './CollectibleImage';
 import { ProductCard } from './ProductCard';
+import { SwipeableImageGallery } from './SwipeableImageGallery';
 import {
   getLastVerifiedPincode,
   lookupIndianPincode,
@@ -100,10 +103,26 @@ export function ProductDetailPage({
   const [checkingPincode, setCheckingPincode] = useState<boolean>(false);
   const [pincodeError, setPincodeError] = useState<string | null>(null);
   const pinAbortRef = useRef<AbortController | null>(null);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  // Guarantee that all side images are present regardless of whether the product was clicked from catalogue, search, or IG archive
+  const canonicalProduct = PRODUCTS.find((p) => p.id === product.id);
+  const displayImages =
+    product.images && product.images.length > 1
+      ? product.images
+      : canonicalProduct?.images && canonicalProduct.images.length > 0
+        ? canonicalProduct.images
+        : [product.imageUrl];
+
+  const activeSlideUrl =
+    (product.slideUrls && product.slideUrls[activeImageIndex]) ||
+    (canonicalProduct?.slideUrls && canonicalProduct.slideUrls[activeImageIndex]) ||
+    product.instagramUrl;
 
   useEffect(() => {
     setSelectedVariantId(product.variants[0]?.id || 'std');
     setQuantity(1);
+    setActiveImageIndex(0);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [product]);
 
@@ -229,33 +248,32 @@ export function ProductDetailPage({
           <div className="lg:col-span-5 lg:sticky lg:top-[84px]">
             <div className="bg-white rounded-[12px] p-3 sm:p-4 shadow-[0_5px_15px_0_#1A1A1A1A] border border-[#1a1a1a]/[0.06]">
               <div className="relative aspect-square w-full rounded-[8px] overflow-hidden bg-[#f0f0f0]">
-                <CollectibleImage
-                  src={product.imageUrl}
+                <SwipeableImageGallery
+                  images={displayImages}
                   fallbackSrc={product.fallbackUrl}
                   alt={product.title}
-                  loading="eager"
-                  fetchPriority="high"
-                  className={`w-full h-full object-cover ${
-                    isSoldOut ? 'grayscale-[40%] opacity-80' : ''
-                  }`}
+                  lazy={false}
+                  aspectRatioClass="aspect-square"
+                  activeIndex={activeImageIndex}
+                  onImageChange={setActiveImageIndex}
                 />
 
                 {isSoldOut ? (
-                  <span className="px-3.5 py-1.5 rounded-full bg-[#1a1a1a]/92 text-white border border-white/15 text-[12px] font-extrabold uppercase tracking-[0.06em] shadow-md absolute top-3 left-3 inline-flex items-center gap-1.5">
+                  <span className="px-3.5 py-1.5 rounded-full bg-[#1a1a1a]/92 text-white border border-white/15 text-[12px] font-extrabold uppercase tracking-[0.06em] shadow-md absolute top-3 left-3 inline-flex items-center gap-1.5 z-10 pointer-events-none">
                     <span className="w-2 h-2 rounded-full bg-[#f83a3a]" />
                     <span>Sold Out</span>
                   </span>
                 ) : discountPct ? (
-                  <span className="badge-pill absolute top-3 left-3">
+                  <span className="badge-pill absolute top-3 left-3 z-10 pointer-events-none">
                     Save {discountPct}%
                   </span>
                 ) : product.status !== 'In Stock' ? (
-                  <span className="badge-pill absolute top-3 left-3">
+                  <span className="badge-pill absolute top-3 left-3 z-10 pointer-events-none">
                     {product.status}
                   </span>
                 ) : null}
 
-                <div className="absolute top-3 right-3 flex flex-col gap-2">
+                <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
                   <button
                     type="button"
                     onClick={() => setWishlisted((prev) => !prev)}
@@ -283,7 +301,65 @@ export function ProductDetailPage({
                   </button>
                 </div>
               </div>
+
+              {/* Side Images Thumbnail Strip */}
+              {displayImages.length > 1 && (
+                <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1 scrollbar-thin">
+                  {displayImages.map((imgSrc, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setActiveImageIndex(idx)}
+                      className={`w-14 h-14 sm:w-16 sm:h-16 rounded-[8px] overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
+                        idx === activeImageIndex
+                          ? 'border-[#f83a3a] ring-2 ring-[#feb913] scale-105'
+                          : 'border-[#1a1a1a]/15 hover:border-[#1a1a1a]/40 opacity-75 hover:opacity-100'
+                      }`}
+                      title={`View slide ${idx + 1}`}
+                    >
+                      <img
+                        src={imgSrc}
+                        alt={`${product.title} photo ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = product.fallbackUrl;
+                        }}
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {/* Instagram Drop Card */}
+            {product.instagramUrl && (
+              <div className="mt-4 p-4 rounded-[12px] bg-white border border-[#1a1a1a]/[0.08] shadow-sm flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#f83a3a] via-[#feb913] to-[#833ab4] flex items-center justify-center text-white shrink-0 shadow-sm">
+                    <Instagram className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-[13px] font-bold text-[#1a1a1a]">
+                      Instagram Drop #{String(product.instagramPostIndex).padStart(3, '0')}
+                    </div>
+                    <div className="text-[11px] text-[#1a1a1ab3]">
+                      Original drop post by @kagefigures
+                    </div>
+                  </div>
+                </div>
+                <a
+                  href={activeSlideUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-1.5 rounded-full bg-[#1a1a1a] hover:bg-[#333] text-white text-[12px] font-bold inline-flex items-center gap-1.5 transition-colors shrink-0 shadow-sm"
+                  title="Open this slide on Instagram"
+                >
+                  <span>{displayImages.length > 1 ? `View Slide ${activeImageIndex + 1}` : 'View Post'}</span>
+                  <ExternalLink className="w-3 h-3 opacity-60" />
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Right: Amazon / Flipkart Style Buy Box & Information */}
@@ -303,6 +379,18 @@ export function ProductDetailPage({
                     <span className="w-1.5 h-1.5 rounded-full bg-[#f83a3a]" />
                     <span>Sold Out</span>
                   </span>
+                )}
+                {product.instagramUrl && (
+                  <a
+                    href={product.instagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-[#f83a3a]/10 via-[#feb913]/15 to-[#f83a3a]/10 border border-[#f83a3a]/30 text-[11.5px] font-bold text-[#1a1a1a] hover:border-[#f83a3a] transition-all"
+                  >
+                    <Instagram className="w-3.5 h-3.5 text-[#f83a3a]" />
+                    <span>Instagram Drop #{String(product.instagramPostIndex).padStart(3, '0')}</span>
+                    <ExternalLink className="w-3 h-3 text-[#1a1a1a]/60" />
+                  </a>
                 )}
               </div>
 

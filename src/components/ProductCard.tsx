@@ -1,6 +1,7 @@
-import { Eye, Layers, Minus, Plus, Ruler, Tag } from 'lucide-react';
-import { Product, formatINR } from '../data/catalog';
+import { Eye, Instagram, Layers, Minus, Plus, Ruler, Tag } from 'lucide-react';
+import { Product, PRODUCTS, formatINR } from '../data/catalog';
 import { CollectibleImage } from './CollectibleImage';
+import { SwipeableImageGallery } from './SwipeableImageGallery';
 
 interface ProductCardProps {
   product: Product;
@@ -39,34 +40,32 @@ export function ProductCard({
       ? 'w-full min-w-0 max-w-none'
       : 'w-[60vw] min-w-[185px] max-w-[225px] sm:w-[230px] md:w-auto md:min-w-0 md:max-w-none shrink-0 snap-start';
 
+  const canonicalProduct = PRODUCTS.find((p) => p.id === product.id);
+  const displayImages =
+    product.images && product.images.length > 1
+      ? product.images
+      : canonicalProduct?.images && canonicalProduct.images.length > 0
+        ? canonicalProduct.images
+        : [product.imageUrl];
+
   return (
     <article
       className={`card !p-0 overflow-hidden flex flex-col justify-between bg-white border border-[#1a1a1a]/[0.06] group ${sizeClasses}`}
     >
-      {/* Product Image Area */}
+      {/* Product Image Area with Swipeable Gallery */}
       <div className="relative aspect-square w-full bg-[#f0f0f0] overflow-hidden">
-        <button
-          type="button"
-          onClick={() => onQuickView(product)}
-          className="w-full h-full block cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#1a1a1a]"
-          aria-label={`View details for ${product.title}${isSoldOut ? ' (Sold Out)' : ''}`}
-        >
-          <CollectibleImage
-            src={product.imageUrl}
-            fallbackSrc={product.fallbackUrl}
-            alt={`${product.title} (${product.code})`}
-            loading="lazy"
-            className={`w-full h-full object-cover object-center transition-transform duration-300 ease-out group-hover:scale-[1.04] ${
-              isSoldOut ? 'grayscale-[45%] opacity-75' : ''
-            }`}
+        <SwipeableImageGallery
+          images={displayImages}
+          fallbackSrc={product.fallbackUrl}
+          alt={`${product.title} (${product.code})`}
+          onClick={() => onQuickView(canonicalProduct || product)}
+        />
+        {isSoldOut && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-black/15 z-10"
           />
-          {isSoldOut && (
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 bg-black/15"
-            />
-          )}
-        </button>
+        )}
 
         {/* Single Top Tag when applicable */}
         {isSoldOut ? (
@@ -105,6 +104,22 @@ export function ProductCard({
           <Eye className="w-3 h-3" />
           <span>View</span>
         </button>
+
+        {/* Instagram Post Link Badge */}
+        {product.instagramUrl && (
+          <a
+            href={product.instagramUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            title={`View Drop #${String(product.instagramPostIndex).padStart(3, '0')} on Instagram`}
+            aria-label={`View Drop #${String(product.instagramPostIndex).padStart(3, '0')} on Instagram`}
+            className="absolute bottom-2.5 left-2.5 z-10 h-6 px-2 rounded-full bg-black/75 hover:bg-black/95 text-white backdrop-blur-md text-[10.5px] font-extrabold inline-flex items-center gap-1 transition-all hover:scale-105 border border-white/20 shadow-sm"
+          >
+            <Instagram className="w-3 h-3 text-[#feb913]" />
+            <span className="tracking-[0.04em]">#{String(product.instagramPostIndex).padStart(3, '0')}</span>
+          </a>
+        )}
 
         {/* Desktop Key-Specs Hover Preview Overlay */}
         <div
