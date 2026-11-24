@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/ig-image/:path*",
+      "destination": "/api/ig-image?path=:path*"
+    },
+    {
+      "source": "/api/ig-slides/:path*",
+      "destination": "/api/ig-slides?path=:path*"
+    }
+  ]
+}
