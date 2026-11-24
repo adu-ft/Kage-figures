@@ -18,7 +18,6 @@ const NAV_LINKS = [
   { label: 'Featured', href: '#featured-collection' },
   { label: 'On Sale', href: '#on-sale' },
   { label: 'Vault', href: '#vault-collection' },
-  { label: 'IG Posts', href: '#instagram-posts' },
   { label: 'About', href: '#impact-text' },
 ];
 

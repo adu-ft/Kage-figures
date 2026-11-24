@@ -1,4 +1,4 @@
-import { Eye, Instagram, Layers, Minus, Plus, Ruler, Tag } from 'lucide-react';
+import { Eye, Layers, Minus, Plus, Ruler, Tag } from 'lucide-react';
 import { Product, PRODUCTS, formatINR } from '../data/catalog';
 import { CollectibleImage } from './CollectibleImage';
 import { SwipeableImageGallery } from './SwipeableImageGallery';
@@ -104,22 +104,6 @@ export function ProductCard({
           <Eye className="w-3 h-3" />
           <span>View</span>
         </button>
-
-        {/* Instagram Post Link Badge */}
-        {product.instagramUrl && (
-          <a
-            href={product.instagramUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            title={`View Drop #${String(product.instagramPostIndex).padStart(3, '0')} on Instagram`}
-            aria-label={`View Drop #${String(product.instagramPostIndex).padStart(3, '0')} on Instagram`}
-            className="absolute bottom-2.5 left-2.5 z-10 h-6 px-2 rounded-full bg-black/75 hover:bg-black/95 text-white backdrop-blur-md text-[10.5px] font-extrabold inline-flex items-center gap-1 transition-all hover:scale-105 border border-white/20 shadow-sm"
-          >
-            <Instagram className="w-3 h-3 text-[#feb913]" />
-            <span className="tracking-[0.04em]">#{String(product.instagramPostIndex).padStart(3, '0')}</span>
-          </a>
-        )}
 
         {/* Desktop Key-Specs Hover Preview Overlay */}
         <div

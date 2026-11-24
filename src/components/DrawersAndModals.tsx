@@ -3,7 +3,6 @@ import {
   AlertCircle,
   CheckCircle2,
   ExternalLink,
-  Instagram,
   Loader2,
   MapPin,
   Minus,
@@ -873,19 +872,6 @@ export function ProductModal({
                   <span className="font-bold text-[#1a1a1a]">
                     {product.editionSize}
                   </span>
-                  {product.instagramUrl && (
-                    <a
-                      href={product.instagramUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#f83a3a] hover:underline inline-flex items-center gap-1 text-[11.5px] font-bold"
-                      title="View post on Instagram"
-                    >
-                      <Instagram className="w-3 h-3" />
-                      <span>IG Drop</span>
-                      <ExternalLink className="w-2.5 h-2.5" />
-                    </a>
-                  )}
                 </div>
               </div>
             </div>

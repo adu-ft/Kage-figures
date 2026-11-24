@@ -7,7 +7,6 @@ import {
   ChevronRight,
   ExternalLink,
   Heart,
-  Instagram,
   Loader2,
   MapPin,
   Minus,
@@ -331,35 +330,6 @@ export function ProductDetailPage({
                 </div>
               )}
             </div>
-
-            {/* Instagram Drop Card */}
-            {product.instagramUrl && (
-              <div className="mt-4 p-4 rounded-[12px] bg-white border border-[#1a1a1a]/[0.08] shadow-sm flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#f83a3a] via-[#feb913] to-[#833ab4] flex items-center justify-center text-white shrink-0 shadow-sm">
-                    <Instagram className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-[13px] font-bold text-[#1a1a1a]">
-                      Instagram Drop #{String(product.instagramPostIndex).padStart(3, '0')}
-                    </div>
-                    <div className="text-[11px] text-[#1a1a1ab3]">
-                      Original drop post by @kagefigures
-                    </div>
-                  </div>
-                </div>
-                <a
-                  href={activeSlideUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3.5 py-1.5 rounded-full bg-[#1a1a1a] hover:bg-[#333] text-white text-[12px] font-bold inline-flex items-center gap-1.5 transition-colors shrink-0 shadow-sm"
-                  title="Open this slide on Instagram"
-                >
-                  <span>{displayImages.length > 1 ? `View Slide ${activeImageIndex + 1}` : 'View Post'}</span>
-                  <ExternalLink className="w-3 h-3 opacity-60" />
-                </a>
-              </div>
-            )}
           </div>
 
           {/* Right: Amazon / Flipkart Style Buy Box & Information */}
@@ -379,18 +349,6 @@ export function ProductDetailPage({
                     <span className="w-1.5 h-1.5 rounded-full bg-[#f83a3a]" />
                     <span>Sold Out</span>
                   </span>
-                )}
-                {product.instagramUrl && (
-                  <a
-                    href={product.instagramUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-[#f83a3a]/10 via-[#feb913]/15 to-[#f83a3a]/10 border border-[#f83a3a]/30 text-[11.5px] font-bold text-[#1a1a1a] hover:border-[#f83a3a] transition-all"
-                  >
-                    <Instagram className="w-3.5 h-3.5 text-[#f83a3a]" />
-                    <span>Instagram Drop #{String(product.instagramPostIndex).padStart(3, '0')}</span>
-                    <ExternalLink className="w-3 h-3 text-[#1a1a1a]/60" />
-                  </a>
                 )}
               </div>
 

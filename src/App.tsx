@@ -335,26 +335,9 @@ export default function App() {
         hash === '#instagram-index' ||
         hash === '#ig-posts'
       ) {
-        const returningFromProduct =
-          returnToInstagramRef.current && prevHash.startsWith('#product-');
-        if (!prevSubpageOpenRef.current) {
-          savedScrollYRef.current = window.scrollY;
-        }
-        prevSubpageOpenRef.current = true;
-        returnToCatalogRef.current = false;
-        returnToAdminRef.current = false;
-        returnToInstagramRef.current = true;
-        setBrowsePageOpen(false);
-        setAdminPageOpen(false);
-        setSelectedProduct(null);
-        setActiveLegalPage(null);
-        setInstagramPostsPageOpen(true);
-        requestAnimationFrame(() => {
-          window.scrollTo({
-            top: returningFromProduct ? instagramScrollYRef.current : 0,
-            behavior: 'auto',
-          });
-        });
+        setInstagramPostsPageOpen(false);
+        setBrowsePageOpen(true);
+        window.history.replaceState(null, '', '#catalogue');
       } else if (LEGAL_HASH_MAP[hash]) {
         if (!prevSubpageOpenRef.current) {
           savedScrollYRef.current = window.scrollY;
@@ -1418,14 +1401,6 @@ export default function App() {
                 >
                   Show All {filteredCatalogue.length}
                 </button>
-                <button
-                  type="button"
-                  onClick={handleOpenInstagramPosts}
-                  className="h-[50px] px-7 rounded-full border border-[#1a1a1a] bg-[#1a1a1a] text-[#feb913] hover:bg-[#f83a3a] hover:text-white hover:border-[#f83a3a] text-[15px] font-bold transition-all cursor-pointer flex items-center gap-2 shadow-sm"
-                >
-                  <span>Instagram Drops Index (135)</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
               </div>
             )}
           </div>
@@ -1772,18 +1747,6 @@ export default function App() {
                 <ul className="space-y-2.5 text-[15px] font-medium">
                   <li>
                     <a
-                      href="#instagram-posts"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleOpenInstagramPosts();
-                      }}
-                      className="hover:text-[#f83a3a] flex items-center gap-1.5 text-[#f83a3a] font-bold"
-                    >
-                      <span>Instagram Drops Index (135)</span>
-                    </a>
-                  </li>
-                  <li>
-                    <a
                       href="#featured-collection"
                       onClick={(e) => {
                         e.preventDefault();
@@ -1940,17 +1903,6 @@ export default function App() {
                 className="hover:text-[#f83a3a]"
               >
                 Returns
-              </a>
-              <span aria-hidden="true">·</span>
-              <a
-                href="#instagram-posts"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleOpenInstagramPosts();
-                }}
-                className="hover:text-[#f83a3a]"
-              >
-                IG Posts Index
               </a>
               <span aria-hidden="true">·</span>
               <a
