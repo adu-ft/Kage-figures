@@ -21,28 +21,28 @@
 ### 1. Storefront & Hero Showcase
 The modern dark-themed hero with interactive category filters, live cart drawer, currency switcher, and instant search.
 
-![Storefront Hero Preview](docs/previews/storefront-hero.webp)
+<img src="docs/previews/storefront-hero.webp" alt="Storefront Hero Preview" width="100%" loading="lazy" />
 
 ---
 
 ### 2. Product Detail & Swipeable Multi-Angle Gallery
 Rich product view with touch-swipe multi-angle images, scale/edition selectors, live India pincode delivery checker, and WhatsApp instant order flow.
 
-![Product Detail Preview](docs/previews/product-detail.webp)
+<img src="docs/previews/product-detail.webp" alt="Product Detail Preview" width="100%" loading="lazy" />
 
 ---
 
 ### 3. Curated Product Catalogue Grid
 135+ authentic collectibles synced 1:1 with Instagram drops, featuring hover spec previews, live stock badges, dynamic price calculation, and quick-add actions.
 
-![Catalogue Grid Preview](docs/previews/catalogue-grid.webp)
+<img src="docs/previews/catalogue-grid.webp" alt="Catalogue Grid Preview" width="100%" loading="lazy" />
 
 ---
 
 ### 4. Collector Category Collections
 Dedicated showcases for Anime Action Figures, Metal Katana Replicas, 1:32 Die-Cast Cars, 3D Manga Frames, and Collector Keychains.
 
-![Categories Showcase Preview](docs/previews/categories-showcase.webp)
+<img src="docs/previews/categories-showcase.webp" alt="Categories Showcase Preview" width="100%" loading="lazy" />
 
 ---
 
